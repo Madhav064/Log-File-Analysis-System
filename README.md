@@ -18,8 +18,7 @@
 [Quick Start](#-quick-start) •
 [Pipeline](#-running-the-pipeline) •
 [Dashboard](#-dashboard) •
-[Project Structure](#-project-structure) •
-[Team](#-team)
+[Project Structure](#-project-structure)
 
 </div>
 
@@ -388,16 +387,6 @@ Linting and tests run automatically on every pull request through **GitHub Actio
 | [`docs/contracts/`](docs/contracts/) | Data schemas, HDFS layout and API contract |
 | [`docs/VERSIONS.md`](docs/VERSIONS.md) | Pinned versions of every component |
 | [`docs/demo-script.md`](docs/demo-script.md) | Step-by-step demo walkthrough |
-
----
-
-## 👥 Team
-
-| Member | Responsibility |
-|---|---|
-| _TBD_ | **Platform, Ingestion & MapReduce**: Docker cluster, HDFS ingestion, Hadoop Streaming jobs, pipeline CLI, engine benchmark |
-| _TBD_ | **Parsing & Spark Processing**: shared parser, Spark ETL, error / traffic / top-N / anomaly analytics, CI |
-| _TBD_ | **Serving, Dashboard & Delivery**: export layer, Flask REST API, Chart.js dashboard, documentation |
 
 ---
 
