@@ -231,6 +231,7 @@ All tunable settings live in [`config/pipeline.yaml`](config/pipeline.yaml):
 | `top_n` | Number of entries in each Top-N table |
 | `anomaly.z_threshold` | Z-score above which an hour is flagged |
 | `anomaly.baseline_days` | Number of previous same-hour values used as the baseline |
+| `anomaly.min_baseline_points` | Minimum number of real (non-outage) baseline values an hour needs before it is scored |
 | `anomaly.min_requests` | Minimum requests in an hour before its error rate is evaluated |
 
 ---

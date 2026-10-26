@@ -13,7 +13,7 @@ The pickable task list for the team is in [TEAM_TASKS.md](TEAM_TASKS.md).
 
 | # | Topic | Decision |
 |---|-------|----------|
-| D1 | Where it runs | Docker on each laptop (docker compose). Same cluster for all three members. |
+| D1 | Where it runs | Docker on each laptop (docker compose). Same cluster for all three members. Laptops are one Mac (Apple Silicon, arm64) and two Windows machines, so we build **one image of our own from a multi-arch base** instead of pulling `apache/hadoop`, which is amd64-only (see M1). |
 | D2 | Input data | Public dataset: **NASA HTTP access logs, July + August 1995** |
 | D3 | Language | **Python everywhere**: PySpark for Spark jobs, Python + Hadoop Streaming for MapReduce |
 | D4 | Hadoop's role | HDFS (storage) + YARN (scheduling) + **MapReduce jobs too**, so the two engines can be compared |
@@ -30,17 +30,17 @@ These are technical choices the plan needed to be concrete. None of them came fr
 | # | Default | Why |
 |---|---------|-----|
 | P1 | Spark runs in **standalone mode** (spark-master + worker containers) and reads/writes `hdfs://namenode:9000`. MapReduce runs on **YARN**. | Simpler than Spark-on-YARN in Docker. Both engines still share HDFS. |
-| P2 | **Spark 3.5.x, Hadoop 3.3.x/3.4.x, Python 3.10+, Java 17.** Exact versions pinned in `docs/VERSIONS.md` by task A2. | Stable and widely documented. The PySpark used locally must match the cluster's Spark. |
+| P2 | **Hadoop 3.4.1, Spark 3.5.3, Python 3.10+, Java 17.** Pinned in `docs/VERSIONS.md` by task A2. | Stable and widely documented. The PySpark used locally must match the cluster's Spark. Spark 3.5.3's bundled Hadoop 3.3.4 client talks to a 3.4.1 HDFS without problems. |
 | P3 | Data layers on HDFS: **raw → parsed (Parquet) → analytics (Parquet)**. Analytics tables are then **exported to small JSON files** that the dashboard reads. | Flask never talks to HDFS, so the dashboard can be built and demoed on its own. The aggregates are tiny (≈1,500 hourly rows). |
 | P4 | All time-based fields are in **server local time (UTC−04:00)**. Spark session time zone is `America/New_York` (EDT in Jul/Aug). | Traffic peaks only make sense in the server's own clock. MapReduce reads the hour straight from the raw string, so both engines agree. |
 | P5 | "Error" means **HTTP status ≥ 400** (4xx = client error, 5xx = server error). | The dataset is access logs only; there is no separate error log. |
 | P6 | Logs are **decompressed before upload** to HDFS. | `.gz` files cannot be split, which would force a single mapper/task. Uncompressed files split into 128 MB blocks and run in parallel. |
 | P7 | The pipeline runner is a **Python CLI** (not a Makefile or bash). | Works the same on Windows, macOS and Linux. |
-| P8 | Anomaly detection uses a **z-score against the same hour of day over the previous 7 days**, plus **gap detection** (hours with zero requests). Threshold `|z| > 3`, configurable. | Explainable in a viva, handles the day/night cycle, needs no ML library. |
+| P8 | Anomaly detection uses a **z-score against the same hour of day over the previous 7 days**, plus **gap detection** (hours with zero requests). Threshold `|z| > 3`, configurable. Gap hours are **left out of the baseline**, and an hour needs at least `min_baseline_points` real baseline values. | Explainable in a viva, handles the day/night cycle, needs no ML library. Without the exclusion, the zeros from the August outage distort the mean and std for the following week. |
 
 ## 3. About the dataset (what the plan has to handle)
 
-Source: the NASA-HTTP page of the Internet Traffic Archive (`ita.ee.lbl.gov/html/contrib/NASA-HTTP.html`). Files: `NASA_access_log_Jul95.gz`, `NASA_access_log_Aug95.gz`. Combined: ≈3.4 million lines, ≈370 MB uncompressed. Task A1 confirms the download still works and records checksums.
+Source: the NASA-HTTP page of the Internet Traffic Archive (`ita.ee.lbl.gov/html/contrib/NASA-HTTP.html`). Files: `NASA_access_log_Jul95.gz`, `NASA_access_log_Aug95.gz`. Measured on 11 Nov 2026: **3,461,613 lines, 373 MB uncompressed** (July 1,891,714 lines / 205 MB, August 1,569,898 lines / 168 MB). The download works over HTTPS but the host is slow and a long transfer can time out, so the downloader must resume. Task A1 records the SHA-256 checksums in `config/pipeline.yaml`.
 
 Line format (Common Log Format):
 
@@ -54,10 +54,11 @@ Things the parser and analytics must handle:
 | Quirk | Impact on the plan |
 |-------|--------------------|
 | The `host` field is a **hostname when one could be resolved, otherwise an IP**. | The "Top IPs" analysis becomes **"Top hosts"**. Do not run IP-only logic on it. |
-| `bytes` can be `-` | Store it as 0 and keep a flag. |
-| Some request strings are malformed (no protocol, junk characters, odd quoting). | Bad lines go to a **rejected** dataset with a reason. They are counted, never silently dropped. |
-| **August has an outage** (roughly 1 Aug 14:52 to 3 Aug 04:36, the server was shut down for a hurricane). | A real test case for gap/anomaly detection. Confirm it in the output; don't hard-code it. |
-| Expect mostly 404s and very few 5xx. | Error charts must still look right when 5xx counts are tiny. |
+| `bytes` can be `-` (33,643 lines) | Store it as 0 and keep a flag. |
+| About **3,900 lines (0.11%)** have messy request strings: spaces inside the URL, `HTTP/V1.0`, or no protocol (`"GET /icons/back.xbm "`). Their status and bytes are fine. | Parse the request **leniently** (method = first token, resource = second, protocol optional) and keep these lines. A strict request regex would wrongly reject them. |
+| Only **1 line** in the whole dataset fails the Common Log Format outright (a truncated line, `alyssa.p`). Some lines contain binary junk. | The rejected set is nearly empty on real data, so the rejection logic is tested with hand-made lines in `tests/fixtures/`. Every reader (Spark and the Python mappers) must decode with `errors="replace"`, or one junk line crashes a mapper. |
+| **August has an outage** (confirmed: last request `01/Aug 14:52:01`, next `03/Aug 04:36:13`, the server was shut down for a hurricane). | A real test case for gap/anomaly detection. Confirm it in the output; don't hard-code it. |
+| 404s are about 0.6% of requests and there are only about 100 5xx lines (500 and 501). | Error charts must still look right when 5xx counts are tiny. |
 
 ## 4. Architecture
 
@@ -121,6 +122,7 @@ flowchart LR
 3. **No hard-coded paths.** Every path, threshold and N comes from `config/pipeline.yaml`. The same job runs on `file://` (a laptop with no cluster) and `hdfs://` (the cluster) by switching `--env local|cluster`.
 4. **Layers only talk through contracts.** Jobs exchange data only through the schemas in §6. The dashboard only reads the serving JSON. Nobody reaches into another module's internals.
 5. **Every job is idempotent.** Re-running a job overwrites its own output folder and nothing else.
+6. **Every Spark job is runnable as `python -m loganalysis.<package>.<module> --env local|cluster`.** This is the only interface the pipeline runner (M10) relies on, so the runner never needs to know a job's internals.
 
 ## 5. Repository structure (target)
 
@@ -137,9 +139,12 @@ Log-File-Analysis-System/
 ├── config/
 │   └── pipeline.yaml             # paths per env, top_n, anomaly thresholds, timezone
 ├── infra/
+│   ├── Dockerfile                # ONE image for every service (Hadoop + Spark + Python, amd64 and arm64)
+│   ├── entrypoint.sh             # starts the service named by the container's command
 │   ├── docker-compose.yml        # profiles: lite, full
-│   ├── hadoop/                   # Dockerfile (adds python3), *-site.xml, hadoop.env
-│   └── spark/                    # Dockerfile, spark-defaults.conf
+│   ├── full.env                  # settings for the full profile (HDFS replication 2)
+│   ├── hadoop/                   # *-site.xml
+│   └── spark/                    # spark-defaults.conf
 ├── src/loganalysis/              # installable Python package (shared by all jobs)
 │   ├── common/                   # config loader, spark session factory, paths, logging
 │   ├── parsing/                  # log_pattern.py, schema.py, parser.py
@@ -148,6 +153,7 @@ Log-File-Analysis-System/
 │   ├── analytics/                # errors.py, traffic.py, top_n.py, anomalies.py
 │   └── export/                   # to_serving.py
 ├── mapreduce/
+│   ├── run.py                    # runs the jobs on YARN (cluster) or pipes them locally (no Docker)
 │   ├── status_count/             # mapper.py, reducer.py
 │   ├── hourly_traffic/           # mapper.py, reducer.py
 │   └── top_resources/            # count_mapper/reducer, topn_mapper/reducer
@@ -219,7 +225,7 @@ Log-File-Analysis-System/
 
 | Table | Columns | Built by |
 |-------|---------|----------|
-| `quality_report` | total_lines, parsed, rejected, reject_pct, rejected_by_reason (map), min_ts, max_ts, run_at | M4 |
+| `quality_report` | total_lines, parsed, rejected, reject_pct, rejected_by_reason (map), min_ts, max_ts, **unique_hosts**, run_at | M4 |
 | `status_counts` | status, status_class, requests, pct | M5a |
 | `error_timeline_hourly` | hour_ts, requests, errors_4xx, errors_5xx, error_rate | M5a |
 | `top_error_resources` | resource, status, requests (top N, mainly 404) | M5a |
@@ -249,7 +255,7 @@ There is one file per analytics table, `data/serving/<table_name>.json`, shaped 
 
 | Endpoint | Query params | Returns |
 |----------|-------------|---------|
-| `GET /api/summary` | – | KPIs: total requests, unique hosts, total bytes, error rate, peak hour, peak day, date range |
+| `GET /api/summary` | – | KPIs: total requests, unique hosts, total bytes, error rate, peak hour, peak day, date range. Built from existing tables: requests and bytes from `traffic_daily`, error rate from `status_counts`, peaks from `traffic_peaks`, and **unique hosts from `quality_report`** (distinct counts can't be summed from the hourly or daily tables). |
 | `GET /api/errors/status` | – | status_counts |
 | `GET /api/errors/timeline` | `granularity=hour\|day`, `from`, `to` | error timeline |
 | `GET /api/errors/top-resources` | `n` | top_error_resources |
@@ -290,11 +296,11 @@ Errors come back as JSON `{"error": "...", "code": 400}`. Bad params return 400.
 | dashboard | Flask app | 5000 | 1 | 1 |
 
 **How to build it**
-1. Choose base images and **pin exact tags** in `docs/VERSIONS.md`. Prefer the official `apache/hadoop` and `apache/spark` images, and check they are actively maintained before committing to them. Spark's Hadoop client libraries must be compatible with the HDFS version.
+1. **One `infra/Dockerfile` for every service**, built from `ubuntu:22.04` (published for amd64 and arm64) with Java 17 and Python 3 from apt, plus the official Hadoop (`-lean` tarball) and Spark tarballs downloaded from archive.apache.org and **checked against their published SHA-512**. The jars are architecture-independent, so the same file builds natively on Apple Silicon and on Windows (WSL 2). We do not use `apache/hadoop` because its image is amd64-only and would run under slow emulation on the Mac. Pin the versions in `docs/VERSIONS.md`. The container's command picks the role (namenode, datanode, …) through `infra/entrypoint.sh`.
 2. Hadoop config files: `core-site.xml` (`fs.defaultFS=hdfs://namenode:9000`), `hdfs-site.xml` (replication 1 in lite, 2 in full; WebHDFS on), `yarn-site.xml` (NodeManager memory and vcore caps), `mapred-site.xml` (`mapreduce.framework.name=yarn`).
-3. **NodeManagers need `python3`**, because Hadoop Streaming runs `mapper.py` on them. Build a thin custom image if the base image lacks it.
-4. The `client` image needs the Hadoop client, Spark, Python, and the `loganalysis` package installed in editable mode from the mounted repo.
-5. Use compose **profiles** `lite` and `full`, with a memory limit on each container. Target under ~6 GB total for lite.
+3. Hadoop Streaming runs `mapper.py` on the NodeManagers, so they need `python3`. Using the one image everywhere covers that. Run mappers as `python3 mapper.py`, never as `./mapper.py`, because Windows checkouts lose the executable bit.
+4. The `client` container is the same image with the repo mounted at `/opt/project` and `PYTHONPATH` pointing at `src/`, so `loganalysis` is importable without installing anything. PySpark comes from the Spark tarball, so its version always matches the cluster.
+5. Use compose **profiles** `lite` and `full`, with a memory limit on each container. Target under ~6 GB total for lite, and tell Docker Desktop (Mac) or `.wslconfig` (Windows) to give the VM at least 8 GB. Build and test `lite` first. `full` only adds a second DataNode, a second Spark worker and the history server (replication 2 via `infra/full.env`).
 6. Add healthchecks and `depends_on: condition: service_healthy`, so jobs never start before HDFS leaves safe mode.
 7. Named volumes for NameNode and DataNode data, so HDFS survives restarts.
 
@@ -307,10 +313,10 @@ Errors come back as JSON `{"error": "...", "code": 400}`. Bad params return 400.
 **Goal:** get the NASA logs from the internet into `/logs/raw/` on HDFS, repeatably.
 
 **How to build it**
-1. `ingestion/download.py`: downloads both `.gz` files to `data/raw/`, skips files that already exist, verifies **SHA-256** against values committed in config, and retries on network errors. If the original host is down, document a mirror and keep one team backup copy.
+1. `ingestion/download.py`: downloads both `.gz` files to `data/raw/`, skips files that already exist, verifies **SHA-256** against values committed in config, and **resumes interrupted transfers** and retries on network errors (the host is slow). If the original host is down, document a mirror and keep one team backup copy: dropping the `.gz` files into `data/raw/` is enough, because the downloader accepts any file whose checksum matches.
 2. Decompress (per P6).
 3. `ingestion/hdfs_loader.py`: creates the §6.1 directories and uploads with overwrite. Afterwards it checks that the HDFS file size equals the local size and prints block count and replication (`hdfs fsck`). That output makes a good demo slide on "how HDFS stored our data".
-4. Build `data/sample/nasa_sample.log`: the first ~2,000 lines of July, plus a few hand-picked malformed lines from the real files. This sample is what every member develops against.
+4. Build `data/sample/nasa_sample.log`: the first ~2,000 lines of July, plus a few hand-picked odd lines from the real files (the one truncated line, messy request strings, `-` bytes, 404, 500, POST, HEAD). This sample is what every member develops against. Synthetic edge cases that don't occur in the real data (empty line, invalid date, non-ASCII) go in `tests/fixtures/`, not in the sample.
 
 **Done when:** raw files are in HDFS at the agreed paths, the checksums match, and re-running does no harm.
 
@@ -321,7 +327,7 @@ Errors come back as JSON `{"error": "...", "code": 400}`. Bad params return 400.
 **Goal:** one definition of "a valid log line and its fields", used by Spark and MapReduce alike.
 
 **How to build it**
-1. `parsing/log_pattern.py`: the Common Log Format regex with named groups (host, ident, user, timestamp, request, status, bytes), plus a second regex that splits `request` into method / resource / protocol.
+1. `parsing/log_pattern.py`: the Common Log Format regex (host, ident, user, timestamp, request, status, bytes), plus a second, **lenient** regex that splits `request` into method / resource / protocol (protocol optional, extra tokens ignored, query string stripped from the resource). Use **numbered groups, not named ones**: Python's `(?P<name>…)` is not valid Java regex syntax, and Spark's `regexp_extract` selects groups by number. Read input with `errors="replace"`.
 2. `parsing/schema.py`: column names, the Spark `StructType` for §6.2, the rejection reason constants, and the status-class helper.
 3. `parsing/parser.py`: `parse_line(str) -> ParsedRecord | Rejected`, a pure Python function used by the MapReduce mappers and the tests.
 4. For Spark, use the **same regex string** through `regexp_extract` (fast, native) rather than a Python UDF (slow). A **parity test** runs both paths over the fixture file and asserts identical output.
@@ -359,7 +365,7 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 - Requests, bytes and unique hosts per hour and per day.
 - Hour-of-day profile (0–23) and day-of-week profile, both total and average per day.
 - **Peaks:** top K busiest minutes, hours and days, ranked with a window function.
-- Use `approx_count_distinct` for unique hosts at hourly level if exact counts get slow. Document whichever you use.
+- Use exact `countDistinct` for unique hosts (3.4 million rows is small).
 
 **M5c Top-N** (`analytics/top_n.py`)
 - Top resources by hits and by bytes, top hosts by requests (with bytes), and a resource-type breakdown (html vs images vs other).
@@ -367,8 +373,8 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 **M5d Anomaly detection** (`analytics/anomalies.py`)
 1. Build a **complete hourly calendar** from min_ts to max_ts and left-join hourly traffic onto it, so missing hours show up as 0 instead of disappearing.
 2. Hours with 0 requests inside the range → `kind = gap`.
-3. For `requests` and `error_rate`, compute baseline mean and std over the **same hour of day in the previous 7 days** (window `partitionBy(hour_of_day).orderBy(ts).rowsBetween(-7, -1)`).
-4. `z = (value − mean) / std`. `z > threshold` → spike, `z < −threshold` → drop. Skip error_rate when the hour has fewer than `min_requests` requests, and skip when std = 0.
+3. For `requests` and `error_rate`, compute baseline mean and std over the **same hour of day in the previous 7 days** (window `partitionBy(hour_of_day).orderBy(ts).rowsBetween(-7, -1)`). **Null out the gap hours before the window runs** so the aggregates ignore them; otherwise the outage's zeros distort the baseline for the following week.
+4. `z = (value − mean) / std`. `z > threshold` → spike, `z < −threshold` → drop. Skip an hour when it has fewer than `min_baseline_points` real baseline values (this covers the first days of the dataset), skip error_rate when the hour has fewer than `min_requests` requests, and skip when std = 0.
 5. All thresholds come from `config/pipeline.yaml`.
 6. Check against known reality: the August outage should come out as a gap.
 
@@ -388,10 +394,10 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 | `top_resources` stage 2 | mapper keeps a local top-N heap and emits it at the end | – | **single reducer** merges into the global top N |
 
 **How to build it**
-1. Mappers import `parse_line` from M3. Ship the parsing module to the nodes with `-files` (or a zip on `PYTHONPATH`) so there is still exactly one parser.
+1. Mappers import `parse_line` from M3. The runner zips the `loganalysis` package and ships it to the nodes with `-files`, and the mapper adds the zip to `sys.path`, so there is still exactly one parser. Mappers read stdin as bytes and decode with `errors="replace"` (the data contains binary junk).
 2. Malformed lines: increment a Hadoop counter (`reporter:counter:...` on stderr) and skip them. The counter shows on the YARN UI, which is nice for the demo.
 3. Test each mapper and reducer locally first: `cat sample | mapper | sort | reducer`.
-4. A run script per job wraps `hadoop jar hadoop-streaming-*.jar ...` with input, output, `-numReduceTasks` and the combiner, and deletes the previous output first.
+4. **One Python runner, `mapreduce/run.py`** (not a shell script per job, so it behaves the same on every OS) wraps `hadoop jar hadoop-streaming-*.jar ...` with input, output, `-numReduceTasks` and the combiner, and deletes the previous output first. Its `--local` mode pipes the same mapper and reducer through `sort` on the sample, with no Docker. Break ties deterministically (count descending, then key ascending) so Spark and MapReduce top-N lists can be compared exactly.
 
 **Done when:** all three jobs succeed on YARN over the full data, and their output is in `/logs/mapreduce/<job>/`.
 
@@ -402,7 +408,7 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 **Goal:** turn the small analytics tables into the JSON files the dashboard reads (§6.5).
 
 **How to build it**
-1. For each table in §6.4: read the Parquet, `coalesce(1)`, collect (the tables are small, with a size guard that fails above a configurable row limit), and write `{columns, rows}` JSON to `data/serving/`.
+1. For each table in §6.4: read the Parquet, collect it (the tables are small, with a size guard that fails above a configurable row limit), and write `{columns, rows}` JSON to `data/serving/`.
 2. Format timestamps as ISO-8601 strings with the offset.
 3. Write `manifest.json` last, so a half-finished export is never mistaken for a complete one.
 
@@ -463,7 +469,7 @@ python scripts/pipeline.py compare
 python scripts/pipeline.py export
 ```
 
-- It runs inside the `client` container for `--env cluster` (wrapped by `docker compose exec`), and directly on the host for `--env local`.
+- It runs inside the `client` container for `--env cluster`. If you start it from the host, it re-runs itself through `docker compose exec client`, so the command is the same on Mac and Windows. `--env local` runs directly on the host. Spark stages call each job as `python -m loganalysis.<package>.<module> --env <env>` (architectural rule 6).
 - Each stage logs start and end time, row counts and output path. The runner stops at the first failure with a clear message.
 
 **Done when:** `all` goes from an empty HDFS to a populated dashboard with no manual steps.
@@ -483,7 +489,7 @@ python scripts/pipeline.py export
 
 ### M12 — Documentation and demo
 
-- README: what it is, the architecture image, quick start (prerequisites, `compose up`, `pipeline.py all`, open the dashboard), screenshots.
+- README: already written (overview, architecture, quick start). What remains is the dashboard screenshots, and keeping it in step with what was actually built.
 - `docs/demo-script.md`, a ~10 minute walkthrough: cluster UIs (HDFS blocks, YARN job) → run the pipeline → dashboard tour → anomalies (outage) → Spark vs MapReduce comparison.
 - Each owner writes a short section on their own modules.
 
@@ -521,8 +527,9 @@ python scripts/pipeline.py export
 | Risk | Likelihood | Mitigation |
 |------|-----------|------------|
 | A laptop can't run the full cluster (RAM) | Medium | `lite` profile; B and C develop without Docker anyway; demo from the strongest laptop |
-| Docker image tags or vendors change (has happened to popular Hadoop/Spark images) | Medium | Pin exact tags; prefer official Apache images; record them in VERSIONS.md |
-| Dataset host offline | Low–Med | Download on Day 1; keep one team backup copy; record checksums |
+| A Hadoop/Spark image is amd64-only or gets withdrawn (`apache/hadoop` is amd64-only) | Medium | Build our own single image from a multi-arch base and the official tarballs (M1); pin versions and verify tarball checksums |
+| Dataset host offline or slow (a long transfer already timed out once) | Medium | Resumable downloader; download on Day 1; keep one team backup copy; record checksums |
+| Docker VM too small for the cluster (Mac default and WSL 2 defaults vary) | Medium | Set VM memory to 8 GB or more; per-container memory limits; `lite` first |
 | Python missing on NodeManagers → Hadoop Streaming fails | Medium | Custom image (M1 step 3); smoke-test a Python mapper on Day 3 |
 | Local PySpark version ≠ cluster Spark version | Medium | Pin both from VERSIONS.md in `requirements/jobs.txt` |
 | Spark and MR disagree on counts | Medium | Shared parser + parity test; explain any remaining difference |
@@ -537,7 +544,8 @@ python scripts/pipeline.py export
 
 ## 12. Still open (please answer when you can)
 
-1. **Team members' operating systems** (Windows / macOS / Linux). This affects Docker Desktop vs native Docker and WSL2 setup notes.
-2. **Who takes which track** (A / B / C), so names can go into TEAM_TASKS.md.
-3. **The exact demo date**, to turn "Day 1–14" into real dates.
-4. **Any instructor requirements** on versions, report format or required analyses that this plan doesn't cover.
+Answered: operating systems are one Mac (Apple Silicon) and two Windows laptops, and Dilpreet takes Track A (see D1 and TEAM_TASKS.md).
+
+1. **Who takes tracks B and C**, so names can go into TEAM_TASKS.md.
+2. **The exact demo date**, to turn "Day 1–14" into real dates.
+3. **Any instructor requirements** on versions, report format or required analyses that this plan doesn't cover.

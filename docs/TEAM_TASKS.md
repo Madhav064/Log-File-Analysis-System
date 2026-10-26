@@ -13,8 +13,8 @@ Status values: `todo` · `in progress` · `review` · `done`
 | ID | Task | Output | Est. | Owner | Status |
 |----|------|--------|------|-------|--------|
 | S1 | Review PROJECT_PLAN.md §2 defaults; freeze the §6 contracts into `docs/contracts/` | Contracts merged to `main` | 0.5d | all | todo |
-| S2 | Repo skeleton: folders from §5, `.gitignore`, `.gitattributes` (LF), `requirements/*.txt`, empty `config/pipeline.yaml` with keys agreed | Skeleton PR | 0.25d | | todo |
-| S3 | GitHub setup: protect `main`, require 1 review, create Issues for every task below, Project board | Board live | 0.25d | | todo |
+| S2 | Repo skeleton: folders from §5, `.gitignore`, `.gitattributes` (LF), `requirements/*.txt`, `config/pipeline.yaml` with keys agreed | Skeleton PR | 0.25d | Dilpreet | todo |
+| S3 | GitHub setup: protect `main`, require 1 review, create Issues for every task below, Project board | Board live | 0.25d | repo owner | todo |
 | S4 | Each member installs Docker, Python, Java 17 and local PySpark, and confirms `pyspark` starts | Everyone can run local Spark | 0.25d | all | todo |
 
 ---
@@ -25,18 +25,17 @@ Status values: `todo` · `in progress` · `review` · `done`
 
 | ID | Task | Module | Depends on | Est. | Owner | Status |
 |----|------|--------|-----------|------|-------|--------|
-| A1 | Download script with checksums and a mirror note; build the committed `data/sample/nasa_sample.log` (**do this on Day 1, everyone needs the sample**) | M2 | S2 | 0.5d | | todo |
-| A2 | Hadoop images + config (HDFS, YARN, MapReduce on YARN, python3 on NodeManagers); pin versions in `docs/VERSIONS.md` | M1 | S2 | 1.5d | | todo |
-| A3 | Spark master/worker + client container wired to HDFS; `lite` / `full` profiles; healthchecks; smoke tests (SparkPi, wordcount) | M1 | A2 | 1d | | todo |
-| A4 | HDFS loader: create layout, decompress, upload, verify size, print `fsck` summary; idempotent | M2 | A1, A3 | 0.5d | | todo |
-| A5 | MR job `status_count` (mapper, combiner, reducer, run script, local pipe test) | M6 | B1, A3 | 0.5d | | todo |
-| A6 | MR job `hourly_traffic` | M6 | B1, A3 | 0.5d | | todo |
-| A7 | MR job `top_resources` (2 stages, single-reducer top N) | M6 | A5 | 1d | | todo |
-| A8 | Pipeline runner CLI `scripts/pipeline.py` (all stages, `--env`, `--only`, logging, fail-fast) | M10 | B3 | 1d | | todo |
-| A9 | `compare_engines.py`: Spark vs MR result check + benchmark → `engine_benchmark` table | M9 | A5–A7, B5, B6 | 1d | | todo |
-| A10 | Add the `dashboard` service to compose (with C) | M1 | C2 | 0.25d | | todo |
+| A1 | Resumable download script with checksums and a mirror note; build the committed `data/sample/nasa_sample.log` (**do this on Day 1, everyone needs the sample**) | M2 | S2 | 0.5d | Dilpreet | todo |
+| A2 | One multi-arch `infra/Dockerfile` (Hadoop + Spark + Python, builds on Mac and Windows) + HDFS / YARN / MapReduce config; pin versions in `docs/VERSIONS.md` | M1 | S2 | 2d | Dilpreet | todo |
+| A3 | Compose services for Spark master/worker + client wired to HDFS; `lite` / `full` profiles; healthchecks; smoke tests (SparkPi, wordcount, a Python streaming mapper) | M1 | A2 | 1d | Dilpreet | todo |
+| A4 | HDFS loader: create layout, decompress, upload, verify size, print `fsck` summary; idempotent | M2 | A1, A3 | 0.5d | Dilpreet | todo |
+| A5 | MR job `status_count` (mapper, combiner, reducer, `mapreduce/run.py`, local pipe test) | M6 | B1, A3 | 0.5d | Dilpreet | todo |
+| A6 | MR job `hourly_traffic` | M6 | B1, A3 | 0.5d | Dilpreet | todo |
+| A7 | MR job `top_resources` (2 stages, single-reducer top N) | M6 | A5 | 1d | Dilpreet | todo |
+| A8 | Pipeline runner CLI `scripts/pipeline.py` (all stages, `--env`, `--only`, logging, fail-fast, re-runs itself inside the `client` container when started from the host) | M10 | B3 | 1d | Dilpreet | todo |
+| A9 | `compare_engines.py`: Spark vs MR result check + benchmark → `engine_benchmark` table | M9 | A5–A7, B5, B6 | 1d | Dilpreet | todo |
 
-**Track A total ≈ 7.75 days**
+**Track A total ≈ 8 days** (the old A10, "add the dashboard service to compose", is now part of C8)
 
 ---
 
@@ -46,14 +45,14 @@ Status values: `todo` · `in progress` · `review` · `done`
 
 | ID | Task | Module | Depends on | Est. | Owner | Status |
 |----|------|--------|-----------|------|-------|--------|
-| B1 | Shared parsing library: regex, `schema.py` (StructType, reason codes), `parse_line()` (**finish by Day 3: A5/A6 and B4 need it**) | M3 | S1, A1 | 1d | | todo |
+| B1 | Shared parsing library: regex with numbered groups and a lenient request parse, `schema.py` (StructType, reason codes), `parse_line()` (**finish by Day 3: A5/A6 and B4 need it**) | M3 | S1, A1 | 1d | | todo |
 | B2 | Parser unit tests (all edge cases) + Spark-vs-Python parity test | M3 / M11 | B1 | 0.5d | | todo |
 | B3 | `common/`: config loader (`--env local|cluster`), Spark session factory (timezone P4), path resolver, logging | M4 | S2 | 0.5d | | todo |
-| B4 | Spark ETL job: raw → parsed Parquet (partitioned) + rejected + `quality_report` | M4 | B1, B3 | 1d | | todo |
+| B4 | Spark ETL job: raw → parsed Parquet (partitioned) + rejected + `quality_report` (including `unique_hosts`) | M4 | B1, B3 | 1d | | todo |
 | B5 | Errors analytics job (status counts, hourly error rate, top 404 resources, top error hosts) + tests | M5a | B4 | 1d | | todo |
 | B6 | Traffic analytics job (hourly/daily, hour-of-day + weekday profiles, peaks) + tests | M5b | B4 | 1d | | todo |
 | B7 | Top-N analytics job (resources by hits/bytes, hosts, resource types) + tests | M5c | B4 | 0.5d | | todo |
-| B8 | Anomaly detection job (hourly calendar, gaps, same-hour 7-day z-score, config thresholds) + tests | M5d | B6 | 1.5d | | todo |
+| B8 | Anomaly detection job (hourly calendar, gaps, same-hour 7-day z-score with gap hours excluded from the baseline, config thresholds) + tests | M5d | B6 | 1.5d | | todo |
 | B9 | GitHub Actions CI: ruff + pytest (Java 17 + pyspark on the runner) | M11 | B2 | 0.5d | | todo |
 
 **Track B total ≈ 7.5 days**
@@ -73,8 +72,8 @@ Status values: `todo` · `in progress` · `review` · `done`
 | C5 | Errors page + Traffic page (granularity toggle, date range) | M8b | C4 | 1d | | todo |
 | C6 | Top N page + Anomalies page + Pipeline page (quality + benchmark) | M8b | C4 | 1d | | todo |
 | C7 | Export job: analytics Parquet → serving JSON + manifest (size guard, ISO timestamps) | M7 | B3, B5 | 1d | | todo |
-| C8 | Dashboard Dockerfile | M8 | C2 | 0.25d | | todo |
-| C9 | README (quick start, screenshots, architecture), `docs/demo-script.md`; collect each owner's module notes | M12 | all | 0.75d | | todo |
+| C8 | Dashboard Dockerfile **and** its `dashboard` service in `infra/docker-compose.yml` | M8 / M1 | C2 | 0.5d | | todo |
+| C9 | README screenshots and a check that the README matches what was built, `docs/demo-script.md`; collect each owner's module notes (the README text itself is already written) | M12 | all | 0.5d | | todo |
 
 **Track C total ≈ 8 days**
 
@@ -109,7 +108,7 @@ flowchart LR
     A5 & A6 & A7 & B5 & B6 --> A9
     B5 --> C7
     C1[C1 mock data] --> C2 --> C3 --> C4 --> C5 & C6
-    C2 --> C8 & A10
+    C2 --> C8
     A4 & B8 & C7 & A8 --> I1[I1 end-to-end run]
 ```
 
