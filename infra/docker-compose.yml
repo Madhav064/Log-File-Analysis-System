@@ -1,0 +1,161 @@
+# Lite:  docker compose -f infra/docker-compose.yml --profile lite up -d
+# Full:  docker compose -f infra/docker-compose.yml --env-file infra/full.env --profile full up -d
+#
+# Every service uses the same image (infra/Dockerfile). Give Docker at least 8 GB of RAM.
+
+name: loganalysis
+
+x-base: &base
+  image: loganalysis/hadoop-spark:local
+  build: .
+  restart: unless-stopped
+
+x-env: &env
+  DFS_REPLICATION: ${DFS_REPLICATION:-1}
+
+x-healthy: &healthy
+  condition: service_healthy
+
+services:
+  namenode:
+    <<: *base
+    command: namenode
+    hostname: namenode
+    profiles: [lite, full]
+    mem_limit: 640m
+    environment: {<<: *env, HADOOP_HEAPSIZE_MAX: 384m}
+    ports: ["9870:9870"]
+    volumes: ["nn-data:/data/hdfs/name"]
+    healthcheck:
+      # Only "is it answering?". After a restart the NameNode stays in safe mode until a DataNode reports
+      # its blocks, so requiring safe mode OFF here would deadlock with the DataNode waiting for us.
+      test: ["CMD-SHELL", "hdfs dfsadmin -safemode get | grep -q 'Safe mode is'"]
+      interval: 15s
+      timeout: 20s
+      retries: 20
+      start_period: 20s
+
+  datanode:
+    <<: *base
+    command: datanode
+    hostname: datanode
+    profiles: [lite, full]
+    mem_limit: 512m
+    environment: {<<: *env, HADOOP_HEAPSIZE_MAX: 256m}
+    volumes: ["dn-data:/data/hdfs/data"]
+    depends_on: {namenode: *healthy}
+    healthcheck:
+      # Healthy = up AND HDFS has left safe mode, so everything that waits for the DataNode
+      # (the client, jobs) can write to HDFS as soon as it starts.
+      test: ["CMD-SHELL", "curl -sf http://localhost:9864/ > /dev/null && hdfs dfsadmin -safemode get | grep -q OFF"]
+      interval: 15s
+      timeout: 20s
+      retries: 30
+      start_period: 20s
+
+  datanode2:
+    <<: *base
+    command: datanode
+    hostname: datanode2
+    profiles: [full]
+    mem_limit: 512m
+    environment: {<<: *env, HADOOP_HEAPSIZE_MAX: 256m}
+    volumes: ["dn2-data:/data/hdfs/data"]
+    depends_on: {namenode: *healthy}
+
+  resourcemanager:
+    <<: *base
+    command: resourcemanager
+    hostname: resourcemanager
+    profiles: [lite, full]
+    mem_limit: 640m
+    environment: {<<: *env, HADOOP_HEAPSIZE_MAX: 384m}
+    ports: ["8088:8088"]
+    depends_on: {namenode: *healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8088/ws/v1/cluster/info > /dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+
+  nodemanager:
+    <<: *base
+    command: nodemanager
+    hostname: nodemanager
+    profiles: [lite, full]
+    mem_limit: 2560m          # the NodeManager plus the task JVMs it launches
+    environment: {<<: *env, HADOOP_HEAPSIZE_MAX: 384m}
+    depends_on: {namenode: *healthy, resourcemanager: *healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8042/ > /dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+
+  historyserver:
+    <<: *base
+    command: historyserver
+    hostname: historyserver
+    profiles: [full]
+    mem_limit: 512m
+    environment: {<<: *env, HADOOP_HEAPSIZE_MAX: 256m}
+    ports: ["19888:19888"]
+    depends_on: {namenode: *healthy}
+
+  spark-master:
+    <<: *base
+    command: spark-master
+    hostname: spark-master
+    profiles: [lite, full]
+    mem_limit: 384m
+    environment: {SPARK_DAEMON_MEMORY: 256m}
+    ports: ["8080:8080"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/ > /dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 15s
+
+  spark-worker:
+    <<: *base
+    command: spark-worker
+    hostname: spark-worker
+    profiles: [lite, full]
+    mem_limit: 1536m
+    environment: {SPARK_DAEMON_MEMORY: 256m, SPARK_WORKER_MEMORY: 1g, SPARK_WORKER_CORES: "2"}
+    depends_on: {spark-master: *healthy}
+
+  spark-worker2:
+    <<: *base
+    command: spark-worker
+    hostname: spark-worker2
+    profiles: [full]
+    mem_limit: 1536m
+    environment: {SPARK_DAEMON_MEMORY: 256m, SPARK_WORKER_MEMORY: 1g, SPARK_WORKER_CORES: "2"}
+    depends_on: {spark-master: *healthy}
+
+  # Where the pipeline and Spark jobs run (docker compose exec client ...). The repo is mounted
+  # at /opt/project and src/ is on PYTHONPATH, so nothing needs installing.
+  client:
+    <<: *base
+    command: client
+    hostname: client
+    profiles: [lite, full]
+    mem_limit: 768m
+    environment: {<<: *env}
+    ports: ["4040:4040"]
+    volumes: ["..:/opt/project"]
+    depends_on:
+      namenode: *healthy
+      datanode: *healthy
+      resourcemanager: *healthy
+      nodemanager: *healthy
+      spark-master: *healthy
+
+volumes:
+  nn-data:
+  dn-data:
+  dn2-data:

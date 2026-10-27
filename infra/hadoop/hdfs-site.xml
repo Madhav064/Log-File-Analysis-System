@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<configuration>
+  <!-- Plain value on purpose: YARN task containers get a filtered environment, so ${env.X} placeholders
+       here break every MapReduce job. The full profile gets replication 2 for the raw data from the
+       loader (DFS_REPLICATION in infra/full.env). -->
+  <property><name>dfs.replication</name><value>1</value></property>
+  <property><name>dfs.namenode.name.dir</name><value>file:///data/hdfs/name</value></property>
+  <property><name>dfs.datanode.data.dir</name><value>file:///data/hdfs/data</value></property>
+  <property><name>dfs.webhdfs.enabled</name><value>true</value></property>
+  <!-- Development cluster: jobs run as root, so skip permission checks. -->
+  <property><name>dfs.permissions.enabled</name><value>false</value></property>
+  <property><name>dfs.namenode.rpc-bind-host</name><value>0.0.0.0</value></property>
+  <property><name>dfs.namenode.http-bind-host</name><value>0.0.0.0</value></property>
+</configuration>
