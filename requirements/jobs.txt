@@ -1,0 +1,3 @@
+# Must match the Spark version in infra/Dockerfile (docs/VERSIONS.md)
+pyspark==3.5.3
+pyyaml>=6

@@ -1,0 +1,53 @@
+# Single source of truth for paths, thresholds and sizes. Relative local paths are
+# resolved against the repo root. Cluster paths are HDFS URIs (docs/PROJECT_PLAN.md §6.1).
+
+timezone: America/New_York        # the server's clock (UTC-04:00 for the whole dataset)
+top_n: 20
+
+anomaly:
+  z_threshold: 3
+  baseline_days: 7
+  min_baseline_points: 3          # real (non-gap) baseline values needed before an hour is scored
+  min_requests: 50                # minimum requests in an hour before its error rate is scored
+
+export:
+  max_rows_per_table: 100000      # size guard for the dashboard export
+
+dataset:
+  name: NASA HTTP Jul+Aug 1995
+  # sha256 is of the downloaded .gz (recorded 2026-11-11). If the host is down, drop a copy of
+  # the .gz files into data/raw/ and the downloader will accept them when the checksum matches.
+  files:
+    - name: NASA_access_log_Jul95
+      month: "1995-07"
+      url: https://ita.ee.lbl.gov/traces/NASA_access_log_Jul95.gz
+      sha256: 199109ed0f273e095da6ccd5fc9dc4cd8bb58daa06d62135e62090fea9d27488
+    - name: NASA_access_log_Aug95
+      month: "1995-08"
+      url: https://ita.ee.lbl.gov/traces/NASA_access_log_Aug95.gz
+      sha256: 14995aed0ba4558ab832613ebea9a3ef2d87cb4297fc67f5694e0032bbb6b788
+
+hdfs:
+  uri: hdfs://namenode:9000
+
+paths:
+  local:                          # no Docker: works on the bundled sample
+    download_dir: data/raw
+    raw: data/sample
+    raw_glob: data/sample/*.log
+    parsed: data/local/parsed
+    rejected: data/local/rejected
+    quality: data/local/quality
+    analytics: data/local/analytics
+    mapreduce: data/local/mapreduce
+    serving: data/serving
+  cluster:                        # inside the client container, against HDFS
+    download_dir: data/raw
+    raw: hdfs://namenode:9000/logs/raw/nasa
+    raw_glob: hdfs://namenode:9000/logs/raw/nasa/*/*
+    parsed: hdfs://namenode:9000/logs/parsed
+    rejected: hdfs://namenode:9000/logs/rejected
+    quality: hdfs://namenode:9000/logs/quality
+    analytics: hdfs://namenode:9000/logs/analytics
+    mapreduce: hdfs://namenode:9000/logs/mapreduce
+    serving: data/serving
