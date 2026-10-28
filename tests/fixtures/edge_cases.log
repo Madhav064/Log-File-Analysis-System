@@ -1,0 +1,16 @@
+199.72.81.55 - - [01/Jul/1995:00:00:01 -0400] "GET /history/apollo/ HTTP/1.0" 200 6245
+unicomp6.unicomp.net - - [01/Jul/1995:00:00:06 -0400] "GET /shuttle/countdown/?a=1&b=2 HTTP/1.0" 200 3985
+host.example.com - - [01/Jul/1995:00:00:07 -0400] "GET /images/logo.gif HTTP/1.0" 304 -
+host.example.com - - [01/Jul/1995:00:00:08 -0400] "GET /icons/back.xbm " 200 506
+host.example.com - - [01/Jul/1995:00:00:09 -0400] "GET /history/history.html    other/file.html HTTP/1.0" 200 1502
+host.example.com - - [01/Jul/1995:00:00:10 -0400] "GET / HTTP/V1.0" 200 7074
+host.example.com - - [01/Jul/1995:00:00:11 -0400] "GET /café/naïve.html HTTP/1.0" 200 10
+host.example.com - - [01/Jul/1995:00:00:12 -0400] "FOO /odd-method HTTP/1.0" 501 -
+
+host.example.com - - [01/Jul/1995:00:00:13 -0400] "GET /truncated
+host.example.com - - [32/Jul/1995:00:00:14 -0400] "GET /bad-day HTTP/1.0" 200 1
+host.example.com - - [01/Jul/1995:25:00:15 -0400] "GET /bad-hour HTTP/1.0" 200 1
+host.example.com - - [01/Xyz/1995:00:00:16 -0400] "GET /bad-month HTTP/1.0" 200 1
+host.example.com - - [01/Jul/1995:00:00:17 -0400] "GET /bad-status HTTP/1.0" 999 1
+host.example.com - - [01/Jul/1995:00:00:18 -0400] "-" 400 -
+host.example.com - - [01/Jul/1995:00:00:19 -0400] "GET /x HTTP/1.0" 200 abc
