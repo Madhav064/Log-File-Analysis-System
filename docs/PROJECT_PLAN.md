@@ -30,7 +30,7 @@ These are technical choices the plan needed to be concrete. None of them came fr
 | # | Default | Why |
 |---|---------|-----|
 | P1 | Spark runs in **standalone mode** (spark-master + worker containers) and reads/writes `hdfs://namenode:9000`. MapReduce runs on **YARN**. | Simpler than Spark-on-YARN in Docker. Both engines still share HDFS. |
-| P2 | **Hadoop 3.4.1, Spark 3.5.3, Python 3.10+, Java 17.** Pinned in `docs/VERSIONS.md` by task A2. | Stable and widely documented. The PySpark used locally must match the cluster's Spark. Spark 3.5.3's bundled Hadoop 3.3.4 client talks to a 3.4.1 HDFS without problems. |
+| P2 | **Hadoop 3.4.1, Spark 3.5.3, Python 3.10+.** Java 11 inside the Docker image, Java 11 or 17 for local runs. Pinned in `docs/VERSIONS.md` by task A2. | Stable and widely documented. The PySpark used locally must match the cluster's Spark. Spark 3.5.3's bundled Hadoop 3.3.4 client talks to a 3.4.1 HDFS without problems. The image uses Java 11 because Hadoop 3.4.1's YARN fails to start on Java 17 without a long list of `--add-opens` flags (found when building A2). |
 | P3 | Data layers on HDFS: **raw → parsed (Parquet) → analytics (Parquet)**. Analytics tables are then **exported to small JSON files** that the dashboard reads. | Flask never talks to HDFS, so the dashboard can be built and demoed on its own. The aggregates are tiny (≈1,500 hourly rows). |
 | P4 | All time-based fields are in **server local time (UTC−04:00)**. Spark session time zone is `America/New_York` (EDT in Jul/Aug). | Traffic peaks only make sense in the server's own clock. MapReduce reads the hour straight from the raw string, so both engines agree. |
 | P5 | "Error" means **HTTP status ≥ 400** (4xx = client error, 5xx = server error). | The dataset is access logs only; there is no separate error log. |
@@ -56,7 +56,8 @@ Things the parser and analytics must handle:
 | The `host` field is a **hostname when one could be resolved, otherwise an IP**. | The "Top IPs" analysis becomes **"Top hosts"**. Do not run IP-only logic on it. |
 | `bytes` can be `-` (33,643 lines) | Store it as 0 and keep a flag. |
 | About **3,900 lines (0.11%)** have messy request strings: spaces inside the URL, `HTTP/V1.0`, or no protocol (`"GET /icons/back.xbm "`). Their status and bytes are fine. | Parse the request **leniently** (method = first token, resource = second, protocol optional) and keep these lines. A strict request regex would wrongly reject them. |
-| Only **1 line** in the whole dataset fails the Common Log Format outright (a truncated line, `alyssa.p`). Some lines contain binary junk. | The rejected set is nearly empty on real data, so the rejection logic is tested with hand-made lines in `tests/fixtures/`. Every reader (Spark and the Python mappers) must decode with `errors="replace"`, or one junk line crashes a mapper. |
+| **The July file is cut short.** It ends mid-line at `28 Jul 13:32:25` (that truncated line, `alyssa.p`, is the one `NO_MATCH` reject), and August starts at `01 Aug 00:00:01`, so **3 days 10½ hours (28 Jul 13:32 to 1 Aug 00:00) have no data at all**. This is missing data, not a server outage. | The anomaly job will flag about 82 gap hours here, plus about 37 for the hurricane outage below. Show both on the dashboard and label them honestly (data gap vs outage). It also makes excluding gap hours from the baseline (P8) matter more. |
+| Only **1 line** in the whole dataset fails the Common Log Format outright (the truncated end of the July file, above). Some lines contain binary junk. | The rejected set is nearly empty on real data, so the rejection logic is tested with hand-made lines in `tests/fixtures/`. Every reader (Spark and the Python mappers) must decode with `errors="replace"`, or one junk line crashes a mapper. |
 | **August has an outage** (confirmed: last request `01/Aug 14:52:01`, next `03/Aug 04:36:13`, the server was shut down for a hurricane). | A real test case for gap/anomaly detection. Confirm it in the output; don't hard-code it. |
 | 404s are about 0.6% of requests and there are only about 100 5xx lines (500 and 501). | Error charts must still look right when 5xx counts are tiny. |
 
@@ -154,9 +155,10 @@ Log-File-Analysis-System/
 │   └── export/                   # to_serving.py
 ├── mapreduce/
 │   ├── run.py                    # runs the jobs on YARN (cluster) or pipes them locally (no Docker)
-│   ├── status_count/             # mapper.py, reducer.py
-│   ├── hourly_traffic/           # mapper.py, reducer.py
-│   └── top_resources/            # count_mapper/reducer, topn_mapper/reducer
+│   ├── sum_reducer.py            # the one reducer (and combiner) shared by all counting jobs
+│   ├── status_count/             # mapper.py
+│   ├── hourly_traffic/           # mapper.py
+│   └── top_resources/            # mapper.py, top_n.py (top-N heap, used as stage-2 mapper and reducer)
 ├── scripts/
 │   ├── pipeline.py               # M10 runner CLI
 │   └── compare_engines.py        # M9 Spark vs MapReduce check + benchmark
@@ -296,7 +298,7 @@ Errors come back as JSON `{"error": "...", "code": 400}`. Bad params return 400.
 | dashboard | Flask app | 5000 | 1 | 1 |
 
 **How to build it**
-1. **One `infra/Dockerfile` for every service**, built from `ubuntu:22.04` (published for amd64 and arm64) with Java 17 and Python 3 from apt, plus the official Hadoop (`-lean` tarball) and Spark tarballs downloaded from archive.apache.org and **checked against their published SHA-512**. The jars are architecture-independent, so the same file builds natively on Apple Silicon and on Windows (WSL 2). We do not use `apache/hadoop` because its image is amd64-only and would run under slow emulation on the Mac. Pin the versions in `docs/VERSIONS.md`. The container's command picks the role (namenode, datanode, …) through `infra/entrypoint.sh`.
+1. **One `infra/Dockerfile` for every service**, built from `ubuntu:22.04` (published for amd64 and arm64) with Java 11 and Python 3 from apt, plus the official Hadoop (`-lean` tarball) and Spark tarballs downloaded from archive.apache.org and **checked against their published SHA-512**. The jars are architecture-independent, so the same file builds natively on Apple Silicon and on Windows (WSL 2). We do not use `apache/hadoop` because its image is amd64-only and would run under slow emulation on the Mac. Pin the versions in `docs/VERSIONS.md`. The container's command picks the role (namenode, datanode, …) through `infra/entrypoint.sh`.
 2. Hadoop config files: `core-site.xml` (`fs.defaultFS=hdfs://namenode:9000`), `hdfs-site.xml` (replication 1 in lite, 2 in full; WebHDFS on), `yarn-site.xml` (NodeManager memory and vcore caps), `mapred-site.xml` (`mapreduce.framework.name=yarn`).
 3. Hadoop Streaming runs `mapper.py` on the NodeManagers, so they need `python3`. Using the one image everywhere covers that. Run mappers as `python3 mapper.py`, never as `./mapper.py`, because Windows checkouts lose the executable bit.
 4. The `client` container is the same image with the repo mounted at `/opt/project` and `PYTHONPATH` pointing at `src/`, so `loganalysis` is importable without installing anything. PySpark comes from the Spark tarball, so its version always matches the cluster.
@@ -376,7 +378,7 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 3. For `requests` and `error_rate`, compute baseline mean and std over the **same hour of day in the previous 7 days** (window `partitionBy(hour_of_day).orderBy(ts).rowsBetween(-7, -1)`). **Null out the gap hours before the window runs** so the aggregates ignore them; otherwise the outage's zeros distort the baseline for the following week.
 4. `z = (value − mean) / std`. `z > threshold` → spike, `z < −threshold` → drop. Skip an hour when it has fewer than `min_baseline_points` real baseline values (this covers the first days of the dataset), skip error_rate when the hour has fewer than `min_requests` requests, and skip when std = 0.
 5. All thresholds come from `config/pipeline.yaml`.
-6. Check against known reality: the August outage should come out as a gap.
+6. Check against known reality: the output must contain **two runs of gap hours**: 28 Jul 14:00 to 31 Jul 23:00 (the cut-off July file) and 1 Aug 15:00 to 3 Aug 03:00 (the hurricane outage). Both were confirmed in the MapReduce output as hours with no traffic.
 
 **Done when:** each job runs locally and on the cluster, the unit tests on its pure functions pass, and the output matches its contract.
 
@@ -397,7 +399,7 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 1. Mappers import `parse_line` from M3. The runner zips the `loganalysis` package and ships it to the nodes with `-files`, and the mapper adds the zip to `sys.path`, so there is still exactly one parser. Mappers read stdin as bytes and decode with `errors="replace"` (the data contains binary junk).
 2. Malformed lines: increment a Hadoop counter (`reporter:counter:...` on stderr) and skip them. The counter shows on the YARN UI, which is nice for the demo.
 3. Test each mapper and reducer locally first: `cat sample | mapper | sort | reducer`.
-4. **One Python runner, `mapreduce/run.py`** (not a shell script per job, so it behaves the same on every OS) wraps `hadoop jar hadoop-streaming-*.jar ...` with input, output, `-numReduceTasks` and the combiner, and deletes the previous output first. Its `--local` mode pipes the same mapper and reducer through `sort` on the sample, with no Docker. Break ties deterministically (count descending, then key ascending) so Spark and MapReduce top-N lists can be compared exactly.
+4. **One Python runner, `mapreduce/run.py`** (not a shell script per job, so it behaves the same on every OS) wraps `hadoop jar hadoop-streaming-*.jar ...` with input, output, `-numReduceTasks` and the combiner, and deletes the previous output first. Its `--env local` mode pipes the same mapper and reducer through a sort on the sample, with no Docker. Break ties deterministically (count descending, then key ascending) so Spark and MapReduce top-N lists can be compared exactly.
 
 **Done when:** all three jobs succeed on YARN over the full data, and their output is in `/logs/mapreduce/<job>/`.
 

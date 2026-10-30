@@ -13,9 +13,9 @@ Status values: `todo` · `in progress` · `review` · `done`
 | ID | Task | Output | Est. | Owner | Status |
 |----|------|--------|------|-------|--------|
 | S1 | Review PROJECT_PLAN.md §2 defaults; freeze the §6 contracts into `docs/contracts/` | Contracts merged to `main` | 0.5d | all | todo |
-| S2 | Repo skeleton: folders from §5, `.gitignore`, `.gitattributes` (LF), `requirements/*.txt`, `config/pipeline.yaml` with keys agreed | Skeleton PR | 0.25d | Dilpreet | todo |
+| S2 | Repo skeleton: folders from §5, `.gitignore`, `.gitattributes` (LF), `requirements/*.txt`, `config/pipeline.yaml` with keys agreed | Skeleton PR | 0.25d | Dilpreet | review |
 | S3 | GitHub setup: protect `main`, require 1 review, create Issues for every task below, Project board | Board live | 0.25d | repo owner | todo |
-| S4 | Each member installs Docker, Python, Java 17 and local PySpark, and confirms `pyspark` starts | Everyone can run local Spark | 0.25d | all | todo |
+| S4 | Each member installs Docker and builds the image, then confirms `docker compose -f infra/docker-compose.yml --profile lite run --rm --no-deps client python -m pytest` passes. A local Python/Java/PySpark install is optional (on Windows it needs extra Hadoop binaries, so use the container) | Everyone can run the tests and local Spark jobs | 0.25d | all | todo |
 
 ---
 
@@ -25,15 +25,15 @@ Status values: `todo` · `in progress` · `review` · `done`
 
 | ID | Task | Module | Depends on | Est. | Owner | Status |
 |----|------|--------|-----------|------|-------|--------|
-| A1 | Resumable download script with checksums and a mirror note; build the committed `data/sample/nasa_sample.log` (**do this on Day 1, everyone needs the sample**) | M2 | S2 | 0.5d | Dilpreet | todo |
-| A2 | One multi-arch `infra/Dockerfile` (Hadoop + Spark + Python, builds on Mac and Windows) + HDFS / YARN / MapReduce config; pin versions in `docs/VERSIONS.md` | M1 | S2 | 2d | Dilpreet | todo |
-| A3 | Compose services for Spark master/worker + client wired to HDFS; `lite` / `full` profiles; healthchecks; smoke tests (SparkPi, wordcount, a Python streaming mapper) | M1 | A2 | 1d | Dilpreet | todo |
-| A4 | HDFS loader: create layout, decompress, upload, verify size, print `fsck` summary; idempotent | M2 | A1, A3 | 0.5d | Dilpreet | todo |
-| A5 | MR job `status_count` (mapper, combiner, reducer, `mapreduce/run.py`, local pipe test) | M6 | B1, A3 | 0.5d | Dilpreet | todo |
-| A6 | MR job `hourly_traffic` | M6 | B1, A3 | 0.5d | Dilpreet | todo |
-| A7 | MR job `top_resources` (2 stages, single-reducer top N) | M6 | A5 | 1d | Dilpreet | todo |
-| A8 | Pipeline runner CLI `scripts/pipeline.py` (all stages, `--env`, `--only`, logging, fail-fast, re-runs itself inside the `client` container when started from the host) | M10 | B3 | 1d | Dilpreet | todo |
-| A9 | `compare_engines.py`: Spark vs MR result check + benchmark → `engine_benchmark` table | M9 | A5–A7, B5, B6 | 1d | Dilpreet | todo |
+| A1 | Resumable download script with checksums and a mirror note; build the committed `data/sample/nasa_sample.log` (**do this on Day 1, everyone needs the sample**) | M2 | S2 | 0.5d | Dilpreet | review |
+| A2 | One multi-arch `infra/Dockerfile` (Hadoop + Spark + Python, builds on Mac and Windows) + HDFS / YARN / MapReduce config; pin versions in `docs/VERSIONS.md` | M1 | S2 | 2d | Dilpreet | review |
+| A3 | Compose services for Spark master/worker + client wired to HDFS; `lite` / `full` profiles; healthchecks; smoke tests (SparkPi, wordcount, a Python streaming mapper) | M1 | A2 | 1d | Dilpreet | review |
+| A4 | HDFS loader: create layout, decompress, upload, verify size, print `fsck` summary; idempotent | M2 | A1, A3 | 0.5d | Dilpreet | review |
+| A5 | MR job `status_count` (mapper, combiner, reducer, `mapreduce/run.py`, local pipe test) | M6 | B1, A3 | 0.5d | Dilpreet | review |
+| A6 | MR job `hourly_traffic` | M6 | B1, A3 | 0.5d | Dilpreet | review |
+| A7 | MR job `top_resources` (2 stages, single-reducer top N) | M6 | A5 | 1d | Dilpreet | review |
+| A8 | Pipeline runner CLI `scripts/pipeline.py` (all stages, `--env`, `--only`, logging, fail-fast, re-runs itself inside the `client` container when started from the host) | M10 | B3 | 1d | Dilpreet | review |
+| A9 | `compare_engines.py`: Spark vs MR result check + benchmark → `engine_benchmark` table | M9 | A5–A7, B5, B6 | 1d | Dilpreet | in progress |
 
 **Track A total ≈ 8 days** (the old A10, "add the dashboard service to compose", is now part of C8)
 
@@ -86,7 +86,7 @@ Status values: `todo` · `in progress` · `review` · `done`
 | I1 | First full end-to-end run on the cluster (`pipeline.py all`) on one laptop | A | todo |
 | I2 | Fix contract mismatches found in I1 | owner of the failing module | todo |
 | I3 | Dashboard on real exported data; check every chart against the raw numbers | C | todo |
-| I4 | Validate the anomaly output (does the August outage show as a gap?) and tune thresholds | B | todo |
+| I4 | Validate the anomaly output (do both data holes show as gaps: 28 Jul 14:00 to 31 Jul 23:00 and the 1 to 3 Aug hurricane outage?) and tune thresholds | B | todo |
 | I5 | Run the `lite` profile on all three laptops | A | todo |
 | I6 | Demo rehearsal ×2 (follow `demo-script.md`, time it) | C | todo |
 

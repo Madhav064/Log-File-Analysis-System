@@ -143,7 +143,16 @@ flowchart LR
 | **Docker Desktop** (or Docker Engine + Compose v2) | On Windows, use the WSL 2 backend |
 | **RAM** | ~8 GB free for the `lite` profile · 16 GB recommended for `full` |
 | **Git** | |
-| *Optional:* **Python 3.10+** and **Java 17** | Only needed to run jobs locally without the cluster |
+| *Optional:* **Python 3.10+** and **Java 17** | Only needed to run jobs locally without the cluster. On Windows, prefer the container (see below) |
+
+> **Windows notes**
+> - Use Docker Desktop with the **WSL 2** backend. The commands in this README work the same in PowerShell; you do not need Python or Java on the host.
+> - Clone normally: `.gitattributes` keeps `.py` and `.sh` files on LF line endings, which the Linux containers require.
+> - Docker's VM needs about **8 GB**. WSL 2 defaults to half your RAM, so on a smaller laptop create `%UserProfile%\.wslconfig` containing `[wsl2]` and `memory=8GB`, then run `wsl --shutdown`.
+> - The first `up` builds the image (it downloads about 1 GB of Hadoop and Spark) and takes several minutes. Later starts are fast.
+> - To run Python jobs and tests without starting the cluster (and without installing PySpark, which needs extra Hadoop binaries on Windows), use the container:
+>   `docker compose -f infra/docker-compose.yml --profile lite run --rm --no-deps client python -m pytest`
+>   or `... client python -m loganalysis.etl.parse_logs --env local`. Your files stay on the host and are mounted into the container.
 
 ### 1. Clone the repository
 
