@@ -78,9 +78,8 @@ def read_spark(spark, cfg, spec):
 
 
 def spark_session(cfg):
-    from pyspark.sql import SparkSession
-    b = SparkSession.builder.appName("loganalysis-compare").config("spark.sql.session.timeZone", cfg["timezone"])
-    return (b.master("local[2]") if cfg["env"] == "local" else b).getOrCreate()
+    from loganalysis.common.spark import get_spark  # same session settings as every Spark job
+    return get_spark("compare", cfg)
 
 
 def median_runtime(cmd, runs, cwd=ROOT):
