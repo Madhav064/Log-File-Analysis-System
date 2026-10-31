@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from loganalysis.parsing.parser import ParsedRecord, Rejected, parse_line
+from loganalysis.parsing.schema import PARSED_COLUMNS
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "edge_cases.log"
 LINES = FIXTURE.read_text(encoding="utf-8").split("\n")
@@ -61,6 +62,43 @@ def test_unusual_method_and_5xx():
 ])
 def test_rejections_carry_a_reason(n, reason):
     assert parse(n) == Rejected(reason)
+
+
+@pytest.mark.parametrize("n, reason", [
+    (17, "BAD_TIMESTAMP"),   # lower-case month: Spark's date parser would accept it, so the shape check must not
+    (18, "BAD_TIMESTAMP"),   # 30 February
+])
+def test_timestamps_are_strict(n, reason):
+    assert parse(n) == Rejected(reason)
+
+
+def test_whitespace_classes_are_ascii_like_java():
+    # A non-breaking space is not whitespace for Java's \s, so it is not for ours either (re.ASCII).
+    r = parse(19)
+    assert (r.method, r.resource, r.protocol) == ("GET /nbsp", "HTTP/1.0", None)
+
+
+@pytest.mark.parametrize("n, resource, rtype", [
+    (20, "", "none"),            # the target is only a query string
+    (21, "/a/file.", ""),        # trailing dot: empty extension
+    (22, "/a/B.GIF", "gif"),     # extensions are lower-cased
+])
+def test_resource_and_type_corner_cases(n, resource, rtype):
+    r = parse(n)
+    assert (r.resource, r.resource_type) == (resource, rtype)
+
+
+def test_last_second_of_the_day_stays_on_that_day():
+    r = parse(22)
+    assert (str(r.log_date), r.log_hour, r.method) == ("1995-07-01", 23, "HEAD")
+
+
+def test_crlf_line_ending_is_stripped():
+    assert parse_line(LINES[0] + "\r\n") == parse(1)
+
+
+def test_record_fields_are_the_contract_columns():
+    assert ParsedRecord._fields == PARSED_COLUMNS
 
 
 def test_never_raises_on_junk():
