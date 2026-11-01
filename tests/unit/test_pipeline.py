@@ -30,11 +30,11 @@ def test_missing_module_is_detected_including_missing_parent_package():
 
 
 def test_stage_fails_fast_with_the_owning_task_when_a_job_is_not_built_yet():
-    r = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "pipeline.py"), "etl", "--env", "local"],
+    if pipeline.missing_module(pipeline.commands("export", "local", [])[0]) is None:
+        pytest.skip("the export job exists now")  # never run a real stage from a unit test
+    r = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "pipeline.py"), "export", "--env", "local"],
                        capture_output=True, text=True)
-    if r.returncode == 0:
-        pytest.skip("the ETL job exists now")
-    assert "does not exist yet (task B4)" in r.stderr
+    assert "does not exist yet (task C7)" in r.stderr
 
 
 def test_unknown_only_value_is_rejected():
