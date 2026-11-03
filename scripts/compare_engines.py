@@ -78,9 +78,8 @@ def read_spark(spark, cfg, spec):
 
 
 def spark_session(cfg):
-    from pyspark.sql import SparkSession
-    b = SparkSession.builder.appName("loganalysis-compare").config("spark.sql.session.timeZone", cfg["timezone"])
-    return (b.master("local[2]") if cfg["env"] == "local" else b).getOrCreate()
+    from loganalysis.common.spark import get_spark  # same session settings as every Spark job
+    return get_spark("compare", cfg)
 
 
 def median_runtime(cmd, runs, cwd=ROOT):
@@ -101,26 +100,31 @@ def main(argv=None):
     ap.add_argument("--no-benchmark", action="store_true", help="only check that the results match")
     args = ap.parse_args(argv)
     cfg = load_config(args.env)
-    spark = spark_session(cfg)
 
     results = {}
-    for job, spec in JOBS.items():
-        try:
-            spark_rows = read_spark(spark, cfg, spec)
-        except Exception as e:  # AnalysisException when the Parquet table is missing
-            sys.exit(f"[{job}] cannot read Spark table '{spec['table']}': {str(e).splitlines()[0]}\n"
-                     f"  run `pipeline.py analytics` first")
-        mr_text = read_mapreduce(cfg, job)
-        if not mr_text.strip():
-            sys.exit(f"[{job}] MapReduce output is empty or missing; run `pipeline.py mapreduce` first")
-        mr_rows = parse_mapreduce(mr_text)
-        diff = compare(spark_rows, mr_rows, spec["ranked"])
-        results[job] = (diff, len(spark_rows), len(mr_rows))
-        verdict = "MATCH" if diff["match"] else "DIFFERENT"
-        print(f"[{job}] {verdict}: spark {len(spark_rows)} rows, mapreduce {len(mr_rows)} rows")
-        for label in ("only_spark", "only_mr", "different"):
-            for item in diff[label][:10]:
-                print(f"    {label}: {item}")
+    spark = spark_session(cfg)
+    try:
+        for job, spec in JOBS.items():
+            try:
+                spark_rows = read_spark(spark, cfg, spec)
+            except Exception as e:  # AnalysisException when the Parquet table is missing
+                sys.exit(f"[{job}] cannot read Spark table '{spec['table']}': {str(e).splitlines()[0]}\n"
+                         f"  run `pipeline.py analytics` first")
+            mr_text = read_mapreduce(cfg, job)
+            if not mr_text.strip():
+                sys.exit(f"[{job}] MapReduce output is empty or missing; run `pipeline.py mapreduce` first")
+            mr_rows = parse_mapreduce(mr_text)
+            diff = compare(spark_rows, mr_rows, spec["ranked"])
+            results[job] = (diff, len(spark_rows), len(mr_rows))
+            verdict = "MATCH" if diff["match"] else "DIFFERENT"
+            print(f"[{job}] {verdict}: spark {len(spark_rows)} rows, mapreduce {len(mr_rows)} rows")
+            for label in ("only_spark", "only_mr", "different"):
+                for item in diff[label][:10]:
+                    print(f"    {label}: {item}")
+    finally:
+        # Release the cluster before benchmarking: every benchmark run is its own Spark application, and on the
+        # lite profile this session would otherwise hold all the worker's cores and leave each run WAITING forever.
+        spark.stop()
 
     if not args.no_benchmark:
         rows = []
@@ -133,13 +137,16 @@ def main(argv=None):
                 rows.append((job, engine, median_runtime(cmd, args.runs), n, diff["match"]))
         out = f"{cfg['paths']['analytics']}/engine_benchmark"
         schema = "job string, engine string, runtime_sec double, output_rows long, results_match boolean"
-        spark.createDataFrame(rows, schema).write.mode("overwrite").parquet(out)
+        spark = spark_session(cfg)  # a fresh, short session just to write the results
+        try:
+            spark.createDataFrame(rows, schema).write.mode("overwrite").parquet(out)
+        finally:
+            spark.stop()
         print(f"\nBenchmark (median of {args.runs} runs) written to {out}")
         print(f"Hardware: {platform.machine()}, {os.cpu_count()} cpus, env={args.env}, "
               f"profile={os.environ.get('DFS_REPLICATION', '1') == '2' and 'full' or 'lite'}")
         for r in rows:
             print(f"  {r[0]:15} {r[1]:10} {r[2]:8.1f}s  rows={r[3]}  match={r[4]}")
-    spark.stop()
     if not all(d["match"] for d, _, _ in results.values()):
         sys.exit("results differ between engines (explain or fix every difference)")
 

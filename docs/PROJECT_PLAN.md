@@ -147,11 +147,14 @@ Log-File-Analysis-System/
 │   ├── hadoop/                   # *-site.xml
 │   └── spark/                    # spark-defaults.conf
 ├── src/loganalysis/              # installable Python package (shared by all jobs)
-│   ├── common/                   # config loader, spark session factory, paths, logging
-│   ├── parsing/                  # log_pattern.py, schema.py, parser.py
+│   ├── contracts.py              # §6.4 tables as code: columns + types (pure Python)
+│   ├── common/                   # config.py, spark.py (session factory), io.py (paths, read/write, conform),
+│   │                             # job.py (the --env CLI every Spark job uses), log.py
+│   ├── parsing/                  # log_pattern.py, schema.py, parser.py (Python), spark_parser.py (Spark twin),
+│   │                             # streaming.py (stdin helper for the mappers)
 │   ├── ingestion/                # download.py, hdfs_loader.py
 │   ├── etl/                      # parse_logs.py
-│   ├── analytics/                # errors.py, traffic.py, top_n.py, anomalies.py
+│   ├── analytics/                # common.py (ranking helpers), errors.py, traffic.py, top_n.py, anomalies.py
 │   └── export/                   # to_serving.py
 ├── mapreduce/
 │   ├── run.py                    # runs the jobs on YARN (cluster) or pipes them locally (no Docker)
@@ -243,6 +246,16 @@ Log-File-Analysis-System/
 | `resource_type_breakdown` | resource_type, requests, bytes, pct | M5c |
 | `anomalies` | metric (requests / error_rate), hour_ts, value, baseline_mean, baseline_std, z_score, kind (spike / drop / gap) | M5d |
 | `engine_benchmark` | job, engine (spark / mapreduce), runtime_sec, output_rows, results_match | M9 |
+
+The column types, and the rules below, are defined in code in [`src/loganalysis/contracts.py`](../src/loganalysis/contracts.py). Every job writes through it, so a table cannot drift from its contract. Decided while building Track B:
+
+- **Units:** `pct` columns are percentages (0–100); `error_rate` is a ratio (0–1). `day_of_week` is ISO: 1 = Monday … 7 = Sunday.
+- **`top_error_resources`** holds the **top N per error status** (400, 403, 404, 500, 501 …); filter by status to get the broken links (404).
+- **`traffic_peaks`** keeps the top **`peaks_top_k`** (config, 10) per granularity; ties go to the earliest period.
+- **Profile averages** (`avg_requests_per_day`, `avg_requests`) divide by the **days that have traffic**. All 24 hours and all 7 weekdays are always present.
+- **`anomalies`** holds **flagged hours only**. A gap is one row with `metric = requests`, `value = 0` and null baseline/z.
+- **`quality_report`** is stored at `paths.quality` (`/logs/quality/`), not under `/logs/analytics/`; it is overwritten on every ETL run, like every other table.
+- Hourly and daily buckets are in the server's time zone (P4). Collected into Python, a timestamp is converted to the *Python process's* zone, so readers (e.g. the export) should format timestamps in Spark (`date_format`) or set `TZ`.
 
 ### 6.5 Serving JSON (what the dashboard reads)
 
@@ -375,7 +388,7 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 **M5d Anomaly detection** (`analytics/anomalies.py`)
 1. Build a **complete hourly calendar** from min_ts to max_ts and left-join hourly traffic onto it, so missing hours show up as 0 instead of disappearing.
 2. Hours with 0 requests inside the range → `kind = gap`.
-3. For `requests` and `error_rate`, compute baseline mean and std over the **same hour of day in the previous 7 days** (window `partitionBy(hour_of_day).orderBy(ts).rowsBetween(-7, -1)`). **Null out the gap hours before the window runs** so the aggregates ignore them; otherwise the outage's zeros distort the baseline for the following week.
+3. For `requests` and `error_rate`, compute baseline mean and std over the **same hour of day in the previous 7 days** (window `partitionBy(hour_of_day).orderBy(ts).rowsBetween(-7, -1)`). **Null out the gap hours before the window runs** so the aggregates ignore them; otherwise the outage's zeros distort the baseline for the following week. For `error_rate`, hours with fewer than `min_requests` requests are left out of the baseline too, for the same reason they are not scored (their rate is noise).
 4. `z = (value − mean) / std`. `z > threshold` → spike, `z < −threshold` → drop. Skip an hour when it has fewer than `min_baseline_points` real baseline values (this covers the first days of the dataset), skip error_rate when the hour has fewer than `min_requests` requests, and skip when std = 0.
 5. All thresholds come from `config/pipeline.yaml`.
 6. Check against known reality: the output must contain **two runs of gap hours**: 28 Jul 14:00 to 31 Jul 23:00 (the cut-off July file) and 1 Aug 15:00 to 3 Aug 03:00 (the hurricane outage). Both were confirmed in the MapReduce output as hours with no traffic.
@@ -546,8 +559,8 @@ python scripts/pipeline.py export
 
 ## 12. Still open (please answer when you can)
 
-Answered: operating systems are one Mac (Apple Silicon) and two Windows laptops, and Dilpreet takes Track A (see D1 and TEAM_TASKS.md).
+Answered: operating systems are one Mac (Apple Silicon) and two Windows laptops, Dilpreet takes Track A and Madhav takes Track B (see D1 and TEAM_TASKS.md).
 
-1. **Who takes tracks B and C**, so names can go into TEAM_TASKS.md.
+1. **Who takes Track C**, so the name can go into TEAM_TASKS.md.
 2. **The exact demo date**, to turn "Day 1–14" into real dates.
 3. **Any instructor requirements** on versions, report format or required analyses that this plan doesn't cover.

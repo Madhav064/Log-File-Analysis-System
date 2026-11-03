@@ -2,7 +2,8 @@
 # resolved against the repo root. Cluster paths are HDFS URIs (docs/PROJECT_PLAN.md §6.1).
 
 timezone: America/New_York        # the server's clock (UTC-04:00 for the whole dataset)
-top_n: 20
+top_n: 20                         # rows in each Top-N table (and the MapReduce top_resources job)
+peaks_top_k: 10                   # busiest periods kept per granularity in traffic_peaks
 
 anomaly:
   z_threshold: 3

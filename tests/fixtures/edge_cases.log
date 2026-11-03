@@ -14,3 +14,9 @@ host.example.com - - [01/Xyz/1995:00:00:16 -0400] "GET /bad-month HTTP/1.0" 200 
 host.example.com - - [01/Jul/1995:00:00:17 -0400] "GET /bad-status HTTP/1.0" 999 1
 host.example.com - - [01/Jul/1995:00:00:18 -0400] "-" 400 -
 host.example.com - - [01/Jul/1995:00:00:19 -0400] "GET /x HTTP/1.0" 200 abc
+host.example.com - - [01/jul/1995:00:00:20 -0400] "GET /lower-case-month HTTP/1.0" 200 1
+host.example.com - - [30/Feb/1995:00:00:21 -0400] "GET /february-30 HTTP/1.0" 200 1
+host.example.com - - [01/Jul/1995:00:00:22 -0400] "GET /nbsp HTTP/1.0" 200 1
+host.example.com - - [01/Jul/1995:00:00:23 -0400] "GET ?only=query HTTP/1.0" 200 1
+host.example.com - - [01/Jul/1995:00:00:24 -0400] "GET /a/file. HTTP/1.0" 200 1
+host.example.com - - [01/Jul/1995:23:59:59 -0400] "HEAD /a/B.GIF HTTP/1.0" 200 1
