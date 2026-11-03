@@ -1,0 +1,41 @@
+# Lint + every test (parser, Spark transforms, ETL -> analytics on the sample, MapReduce local runs, parity).
+# Cluster runs are not part of CI. Runs on every push to any branch, so a PR shows the result of its head commit.
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"          # the client image's Python (docs/VERSIONS.md)
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"              # Spark 3.5 supports 11 and 17; the cluster image uses 11
+
+      - name: Install dependencies
+        run: pip install -r requirements/dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Check that the Spark tests will run, not skip
+        run: python -c "import pyspark; print('pyspark', pyspark.__version__)"
+
+      - name: Test
+        run: python -m pytest -q -rs
