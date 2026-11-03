@@ -83,10 +83,10 @@ Status values: `todo` · `in progress` · `review` · `done`
 
 | ID | Task | Lead | Status |
 |----|------|------|--------|
-| I1 | First full end-to-end run on the cluster (`pipeline.py all`) on one laptop | A | todo |
+| I1 | First full end-to-end run on the cluster (`pipeline.py all`) on one laptop | A | in progress: ingest → compare verified on Windows (12 Nov); export waits for C7 |
 | I2 | Fix contract mismatches found in I1 | owner of the failing module | todo |
 | I3 | Dashboard on real exported data; check every chart against the raw numbers | C | todo |
-| I4 | Validate the anomaly output (do both data holes show as gaps: 28 Jul 14:00 to 31 Jul 23:00 and the 1 to 3 Aug hurricane outage?) and tune thresholds | B | todo |
+| I4 | Validate the anomaly output (do both data holes show as gaps: 28 Jul 14:00 to 31 Jul 23:00 and the 1 to 3 Aug hurricane outage?) and tune thresholds | B | done: both gap runs found; error_rate noise noted in the Track B handoff |
 | I5 | Run the `lite` profile on all three laptops | A | todo |
 | I6 | Demo rehearsal ×2 (follow `demo-script.md`, time it) | C | todo |
 

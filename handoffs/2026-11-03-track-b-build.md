@@ -1,6 +1,7 @@
 # Handoff: Track B build (parsing, Spark ETL, analytics, CI)
 
 **Date:** 2026-11-03 · **Author:** Madhav · **Branch:** `feat/track-b` (pushed; not merged into `main` yet)
+**Updated 2026-11-12:** verified end to end on the real cluster with the full dataset; see "On the real cluster" below.
 **Read this if you are picking up Track C, reviewing Track B, or running the full pipeline.** Plan: [`docs/PROJECT_PLAN.md`](../docs/PROJECT_PLAN.md). Tasks: [`docs/TEAM_TASKS.md`](../docs/TEAM_TASKS.md). Track A's handoff: [`2026-10-30-track-a-build.md`](2026-10-30-track-a-build.md).
 
 ## Where things stand
@@ -32,14 +33,35 @@
 - **Anomalies** on 10 days of synthetic traffic: exactly the planted 3-hour gap, traffic spike and error-rate spike are flagged and nothing else; the hour after the gap gets a baseline of the 4 real days only; days without enough baseline are not scored.
 - On this Windows laptop (no pyspark): the 51 pure-Python tests pass and the Spark tests skip cleanly.
 
+### On the real cluster, full dataset (Windows 11, `lite` profile, 12 Nov 2026)
+
+First run of the project on Windows (amd64): this also closes Track A's "Windows build untested" item.
+
+| Step | Result |
+|---|---|
+| Image build (`build client`) | 10½ min, 3.07 GB; Hadoop and Spark checksums OK |
+| Tests in the client container (Python 3.10, Java 11, Spark 3.5.3) | **97 passed** (after the tzdata fix below) |
+| `scripts/smoke_test.sh` | passed: HDFS, SparkPi, MapReduce wordcount, Python streaming mapper |
+| `pipeline.py ingest` | 373,056,138 bytes in 4 blocks, HEALTHY, checksums OK (same as Track A) |
+| `pipeline.py etl` (2½ min) | **3,461,613 lines = 3,461,601 parsed + 12 rejected** (11 `BAD_REQUEST`, 1 `NO_MATCH`), 137,978 unique hosts, 1 Jul 00:00:01 to 31 Aug 23:59:53 −04:00. The cache held on the 512 MB executor |
+| `pipeline.py analytics` (2¼ min) | all 14 tables written; status counts and hourly traffic both sum to 3,461,601; 1,369 hours and 58 days with traffic |
+| `pipeline.py mapreduce` (5 min) | all 3 jobs succeeded on YARN, `malformed_lines=12` each |
+| `compare_engines.py --no-benchmark` | **MATCH on all three**: status_count 8 rows, hourly_traffic 1,369, top_resources 20 |
+| **I4 anomalies** | **exactly two gap runs: 28 Jul 14:00 → 31 Jul 23:00 (82 h) and 1 Aug 15:00 → 3 Aug 03:00 (37 h)**. Drops on 1 Aug 14:00 and 3 Aug 04:00–11:00 (slow recovery after the outage). 28 Jul 13:00 is not flagged. 268 rows: 119 gap, 34 + 23 requests spike/drop, 88 + 4 error_rate spike/drop |
+
+What the data shows (useful for the demo): **13 July** is the busiest day (134,203 requests), hour (09:00, 14,926) and minute (09:49, 405), and the anomaly job flags a 10-hour traffic surge that morning; the STS-70 shuttle launch was that morning. Busiest hour of day is 15:00; weekends get about half the weekday traffic. Top resource `/images/NASA-logosmall.gif` (208,798); top host `piweba3y.prodigy.com` (21,988); top broken link `/pub/winvn/readme.txt` (2,004 × 404).
+
+### Fixed during the cluster run
+
+- **`fix(infra)`: `tzdata` added to the image** (Track A's Dockerfile, one word). Without it Python silently ignores `TZ` and stays on UTC, so 5 Spark tests failed in the container (timestamps collected into Python were 4 hours off). The jobs themselves were never affected. The test fixture now fails loudly if the zone is not applied.
+- **`fix(compare)`: deadlock in `compare_engines.py`** (Track A's script). Its Spark session held both of the lite worker's cores, so the first benchmark run waited for executors forever. The session is now stopped before benchmarking; a unit test pins the order.
+- **Disk:** the first image build (compose building all 9 services in parallel) filled C: (Docker's disk image grew to 12.9 GB) and Docker crashed. Docker's data was moved to D:, and the image was built once with `build client`. The README now says to build once first, lists ~15 GB free disk as a prerequisite, and explains how to move Docker's data.
+
 ## Not done / not verified
 
-- **Nothing has run on the cluster or on the full dataset yet.** This laptop had no Docker. The Spark code has only run on GitHub's CI runner (local Spark on the 2,024-line sample and hand-made inputs). Still to do on a machine with the cluster up:
-  1. `python scripts/pipeline.py etl --env cluster`, then check the log line: expect **3,461,613 lines = 3,461,601 parsed + 12 rejected** (1 `NO_MATCH`, 11 `BAD_REQUEST`), as Track A measured.
-  2. `python scripts/pipeline.py analytics --env cluster`
-  3. `python scripts/compare_engines.py --env cluster` (needs `pipeline.py mapreduce` output). This also finishes A9's benchmark half.
-  4. **I4:** check that `anomalies` has two runs of `gap` rows: 28 Jul 14:00 to 31 Jul 23:00, and 1 Aug 15:00 to 3 Aug 03:00. Expect a few `drop` rows at the partial hours on each edge (28 Jul 13:00, 1 Aug 14:00, 3 Aug 04:00); those are real, not bugs.
-- **Memory on the lite profile is untested.** The ETL caches the annotated lines with `MEMORY_AND_DISK` (raw text is kept only for rejected rows) on a 512 MB executor; it should spill to disk rather than fail, but watch it on the first cluster run.
+- **The benchmark half of A9 has not run** (cut for time; plan §11 lists it as "Could"). The deadlock that made it hang is fixed, so `python scripts/compare_engines.py --env cluster` should now finish (about 20 minutes on lite: each Spark and MapReduce job runs 3 times) and write `engine_benchmark`. Until then that table does not exist, so the dashboard's Pipeline page should treat it as optional.
+- **`error_rate` anomalies are noisy:** 88 spikes, most of them small in absolute terms (e.g. 1% errors in an hour against a 0.5% baseline gives z ≈ 3.5), because a 7-point std of a tiny rate is unstable. This is the method the plan agreed (P8), not a bug, so I left it. Recommendation for the team: either a higher `z_threshold` for error_rate only, or also requiring a minimum absolute rise (e.g. +1 percentage point). The `requests` anomalies look meaningful as they are.
+- The `full` profile has still never been started.
 - `--env local` on plain Windows still needs Hadoop's `winutils.exe`, so use the container there (as Track A noted).
 
 ## Decisions made while building (and why)
