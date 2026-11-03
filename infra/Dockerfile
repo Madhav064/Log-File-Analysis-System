@@ -30,9 +30,11 @@ RUN set -eux; cd /tmp; \
 # Java 11, not 17: Hadoop 3.4.1 supports it natively, whereas YARN does not start on Java 17 without a long list
 # of --add-opens flags (for the daemons and for every task JVM). Spark 3.5 runs on both. This layer comes after
 # the big downloads so changing the Java or Python packages does not re-download Hadoop and Spark.
+# tzdata: Java has its own time-zone database, but Python needs this one to honour TZ=America/New_York;
+# without it Python silently stays on UTC and timestamps collected from Spark are 4 hours off.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      openjdk-11-jre-headless python3 python3-yaml python3-pytest netcat-openbsd procps \
+      openjdk-11-jre-headless python3 python3-yaml python3-pytest netcat-openbsd procps tzdata \
  && rm -rf /var/lib/apt/lists/* \
  && ln -s "$(dirname "$(dirname "$(readlink -f "$(which java)")")")" /opt/java \
  && ln -s /usr/bin/python3 /usr/local/bin/python

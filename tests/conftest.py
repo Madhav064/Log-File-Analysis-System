@@ -21,6 +21,10 @@ def spark():
     pytest.importorskip("pyspark")
     from loganalysis.common.spark import get_spark
 
+    if time.localtime(804571201).tm_hour != 0:  # 1 Jul 1995 00:00:01 at UTC-04:00
+        pytest.fail(f"Python is not in {os.environ['TZ']}, so collected timestamps would be wrong; "
+                    f"install the OS time-zone database (apt package tzdata)")
+
     session = get_spark("tests", load_config("local"))
     yield session
     session.stop()
