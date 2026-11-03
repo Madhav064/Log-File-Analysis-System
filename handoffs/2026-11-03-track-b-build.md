@@ -22,7 +22,7 @@
 
 ## Verified
 
-- **CI is green on the first push** ([CI runs for the branch](https://github.com/Madhav064/Log-File-Analysis-System/actions?query=branch%3Afeat%2Ftrack-b)): ruff clean, pyspark 3.5.3 on Java 17, and the whole suite passed: **97 tests (51 pure-Python + 46 Spark)**. The pyspark check before the tests guarantees the Spark tests ran rather than skipped.
+- **CI is green on the first push** ([CI runs for the branch](https://github.com/Madhav064/Log-File-Analysis-System/actions?query=branch%3Afeat%2Ftrack-b)): ruff clean, pyspark 3.5.3 on Java 17, and the whole suite passed: **97 tests (51 pure-Python + 46 Spark)** at that push; the compare-engines fix below added one pure-Python test, so it is now **98 (52 + 46)**. The pyspark check before the tests guarantees the Spark tests ran rather than skipped.
 - **Parity:** the Spark parser and the Python parser give every line the same verdict and identical fields, over all 22 fixture lines, the full 2,024-line sample, and a CRLF and a binary-junk line.
 - **Integration on the sample** (ETL → errors, traffic, top-N, anomalies, written and read back as Parquet):
   - all 15 Spark tables match their contract (column names, order and types);
@@ -31,7 +31,7 @@
   - **Spark matches MapReduce** on all three of Track A's jobs (run locally through `mapreduce/run.py`) using `compare_engines.compare()`;
   - re-running a job replaces its output.
 - **Anomalies** on 10 days of synthetic traffic: exactly the planted 3-hour gap, traffic spike and error-rate spike are flagged and nothing else; the hour after the gap gets a baseline of the 4 real days only; days without enough baseline are not scored.
-- On this Windows laptop (no pyspark): the 51 pure-Python tests pass and the Spark tests skip cleanly.
+- On this Windows laptop (no pyspark): the 52 pure-Python tests pass and the Spark tests skip cleanly.
 
 ### On the real cluster, full dataset (Windows 11, `lite` profile, 3 Nov 2026)
 
@@ -40,7 +40,7 @@ First run of the project on Windows (amd64): this also closes Track A's "Windows
 | Step | Result |
 |---|---|
 | Image build (`build client`) | 10½ min, 3.07 GB; Hadoop and Spark checksums OK |
-| Tests in the client container (Python 3.10, Java 11, Spark 3.5.3) | **97 passed** (after the tzdata fix below) |
+| Tests in the client container (Python 3.10, Java 11, Spark 3.5.3) | **97 passed** after the tzdata fix below; **98** with the compare-engines test added afterwards |
 | `scripts/smoke_test.sh` | passed: HDFS, SparkPi, MapReduce wordcount, Python streaming mapper |
 | `pipeline.py ingest` | 373,056,138 bytes in 4 blocks, HEALTHY, checksums OK (same as Track A) |
 | `pipeline.py etl` (2½ min) | **3,461,613 lines = 3,461,601 parsed + 12 rejected** (11 `BAD_REQUEST`, 1 `NO_MATCH`), 137,978 unique hosts, 1 Jul 00:00:01 to 31 Aug 23:59:53 −04:00. The cache held on the 512 MB executor |
@@ -56,6 +56,13 @@ What the data shows (useful for the demo): **13 July** is the busiest day (134,2
 - **`fix(infra)`: `tzdata` added to the image** (Track A's Dockerfile, one word). Without it Python silently ignores `TZ` and stays on UTC, so 5 Spark tests failed in the container (timestamps collected into Python were 4 hours off). The jobs themselves were never affected. The test fixture now fails loudly if the zone is not applied.
 - **`fix(compare)`: deadlock in `compare_engines.py`** (Track A's script). Its Spark session held both of the lite worker's cores, so the first benchmark run waited for executors forever. The session is now stopped before benchmarking; a unit test pins the order.
 - **Disk:** the first image build (compose building all 9 services in parallel) filled C: (Docker's disk image grew to 12.9 GB) and Docker crashed. Docker's data was moved to D:, and the image was built once with `build client`. The README now says to build once first, lists ~15 GB free disk as a prerequisite, and explains how to move Docker's data.
+
+### Re-verified on macOS (Apple Silicon) after the merge
+
+- Rebuilt the image with `build client` and ran the suite in the client container: **98 passed**; `ruff check .` clean (ruff is not in the image, so lint it from a venv or CI).
+- **A stale image fails the Spark tests.** An image built before the `tzdata` fix gave 52 passed + 46 errors (`Python is not in America/New_York ... install tzdata`). Rebuild with `docker compose -f infra/docker-compose.yml --profile lite build client`.
+- **`fix(infra)`: the `client` memory limit went from 768 MB to 2 GB.** At 768 MB the local-mode Spark JVM is killed part-way through the run (`Py4JNetworkError: Answer from Java side is empty` / `ConnectionRefusedError`), so a different handful of Spark tests fail on each run. At 2 GB all 98 pass with no override. The lite cluster limits add up to about 6 GB, so the Docker VM (8 GB) now has little headroom; keep other containers stopped while testing on an 8 GB VM.
+- **`main` was rewritten** (commit hashes changed, the content did not). If you cloned before this, run `git fetch && git reset --hard origin/main`.
 
 ## Not done / not verified
 
@@ -89,7 +96,7 @@ Mine (each is written into plan §6.4 / M5d too):
 python scripts/pipeline.py etl --env local          # the sample -> data/local/...
 python scripts/pipeline.py analytics --env local
 python -m loganalysis.analytics.anomalies --env local   # any single job
-python -m pytest -q                                  # 97 tests; the 46 Spark ones skip where pyspark is missing
+python -m pytest -q                                  # 98 tests; the 46 Spark ones skip where pyspark is missing
 ```
 
 Without the cluster, from the host: `docker compose -f infra/docker-compose.yml --profile lite run --rm --no-deps client python -m pytest`.

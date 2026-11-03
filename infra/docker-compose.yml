@@ -144,7 +144,7 @@ services:
     command: client
     hostname: client
     profiles: [lite, full]
-    mem_limit: 768m
+    mem_limit: 2g             # the test suite's local-mode Spark JVM is killed at 768m
     environment: {<<: *env}
     ports: ["4040:4040"]
     volumes: ["..:/opt/project"]
