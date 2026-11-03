@@ -238,6 +238,7 @@ All tunable settings live in [`config/pipeline.yaml`](config/pipeline.yaml):
 | `paths.<env>.*` | Input and output locations for `local` and `cluster` |
 | `timezone` | Time zone used for hourly and daily aggregation (server local time) |
 | `top_n` | Number of entries in each Top-N table |
+| `peaks_top_k` | Number of busiest minutes, hours and days kept in the peaks table |
 | `anomaly.z_threshold` | Z-score above which an hour is flagged |
 | `anomaly.baseline_days` | Number of previous same-hour values used as the baseline |
 | `anomaly.min_baseline_points` | Minimum number of real (non-outage) baseline values an hour needs before it is scored |

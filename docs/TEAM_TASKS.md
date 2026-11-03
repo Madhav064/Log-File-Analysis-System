@@ -45,17 +45,17 @@ Status values: `todo` · `in progress` · `review` · `done`
 
 | ID | Task | Module | Depends on | Est. | Owner | Status |
 |----|------|--------|-----------|------|-------|--------|
-| B1 | Shared parsing library: regex with numbered groups and a lenient request parse, `schema.py` (StructType, reason codes), `parse_line()` (**finish by Day 3: A5/A6 and B4 need it**) | M3 | S1, A1 | 1d | | todo |
-| B2 | Parser unit tests (all edge cases) + Spark-vs-Python parity test | M3 / M11 | B1 | 0.5d | | todo |
-| B3 | `common/`: config loader (`--env local|cluster`), Spark session factory (timezone P4), path resolver, logging | M4 | S2 | 0.5d | | todo |
-| B4 | Spark ETL job: raw → parsed Parquet (partitioned) + rejected + `quality_report` (including `unique_hosts`) | M4 | B1, B3 | 1d | | todo |
-| B5 | Errors analytics job (status counts, hourly error rate, top 404 resources, top error hosts) + tests | M5a | B4 | 1d | | todo |
-| B6 | Traffic analytics job (hourly/daily, hour-of-day + weekday profiles, peaks) + tests | M5b | B4 | 1d | | todo |
-| B7 | Top-N analytics job (resources by hits/bytes, hosts, resource types) + tests | M5c | B4 | 0.5d | | todo |
-| B8 | Anomaly detection job (hourly calendar, gaps, same-hour 7-day z-score with gap hours excluded from the baseline, config thresholds) + tests | M5d | B6 | 1.5d | | todo |
-| B9 | GitHub Actions CI: ruff + pytest (Java 17 + pyspark on the runner) | M11 | B2 | 0.5d | | todo |
+| B1 | Shared parsing library: regex with numbered groups and a lenient request parse, `schema.py` (StructType, reason codes), `parse_line()` (**finish by Day 3: A5/A6 and B4 need it**) | M3 | S1, A1 | 1d | Madhav | review |
+| B2 | Parser unit tests (all edge cases) + Spark-vs-Python parity test | M3 / M11 | B1 | 0.5d | Madhav | review |
+| B3 | `common/`: config loader (`--env local|cluster`), Spark session factory (timezone P4), path resolver, logging | M4 | S2 | 0.5d | Madhav | review |
+| B4 | Spark ETL job: raw → parsed Parquet (partitioned) + rejected + `quality_report` (including `unique_hosts`) | M4 | B1, B3 | 1d | Madhav | review |
+| B5 | Errors analytics job (status counts, hourly error rate, top 404 resources, top error hosts) + tests | M5a | B4 | 1d | Madhav | review |
+| B6 | Traffic analytics job (hourly/daily, hour-of-day + weekday profiles, peaks) + tests | M5b | B4 | 1d | Madhav | review |
+| B7 | Top-N analytics job (resources by hits/bytes, hosts, resource types) + tests | M5c | B4 | 0.5d | Madhav | review |
+| B8 | Anomaly detection job (hourly calendar, gaps, same-hour 7-day z-score with gap hours excluded from the baseline, config thresholds) + tests | M5d | B6 | 1.5d | Madhav | review |
+| B9 | GitHub Actions CI: ruff + pytest (Java 17 + pyspark on the runner) | M11 | B2 | 0.5d | Madhav | review |
 
-**Track B total ≈ 7.5 days**
+**Track B total ≈ 7.5 days** · Branch `feat/track-b`; handoff in [`handoffs/2026-11-03-track-b-build.md`](../handoffs/2026-11-03-track-b-build.md)
 
 ---
 
