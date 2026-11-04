@@ -8,6 +8,7 @@ import os
 import subprocess
 
 from loganalysis.common.config import load_config
+from loganalysis.common.reports import now_iso, write_report
 from loganalysis.ingestion.download import ensure_raw_files
 
 LAYOUT = ("raw", "parsed", "rejected", "quality", "analytics", "mapreduce")
@@ -52,8 +53,10 @@ def load(cfg, force=False):
     paths = cfg["paths"]
     for key in LAYOUT:
         hdfs("dfs", "-mkdir", "-p", paths[key])
+    uploaded = []
     for local, month in ensure_raw_files(cfg):
         target = f"{paths['raw']}/month={month}/{local.name}"
+        uploaded.append((local, month, target))
         size = local.stat().st_size
         if not force and hdfs_size(target) == size:
             print(f"  {target}: already in HDFS ({size:,} bytes), skipped")
@@ -66,12 +69,33 @@ def load(cfg, force=False):
             raise RuntimeError(f"size mismatch for {target}: local {size:,}, HDFS {stored}")
         print(f"  {target}: uploaded ({size:,} bytes)")
     print("HDFS block summary for", paths["raw"])
+    fsck = hdfs("fsck", paths["raw"], "-files", "-blocks", check=False).stdout
     shown = set()  # fsck repeats Total size / Total files for erasure-coded data (always 0 here)
-    for line in hdfs("fsck", paths["raw"], "-files", "-blocks", check=False).stdout.splitlines():
+    for line in fsck.splitlines():
         key = next((k for k in FSCK_KEYS if line.strip().startswith(k)), None)
         if key and key not in shown:
             shown.add(key)
             print("  " + line.strip())
+    path = write_report(cfg, "ingestion_report", report_records(cfg, uploaded, parse_fsck_status(fsck)))
+    print(f"Ingestion report written to {path}")
+
+
+def report_records(cfg, uploaded, fsck_status):
+    """One ingestion_report row per file. Every file passed the SHA-256 check in ensure_raw_files (it raises
+    otherwise), so checksum_verified is True."""
+    sha = {f["name"]: f["sha256"] for f in cfg["dataset"]["files"]}
+    loaded_at = now_iso()
+    records = []
+    for local, month, target in uploaded:
+        stat = hdfs("dfs", "-stat", "%b %r %o", target).stdout
+        size, replication, block_size, blocks = parse_stat(stat)
+        records.append({
+            "file": local.name, "month": month, "hdfs_path": target, "local_bytes": local.stat().st_size,
+            "hdfs_bytes": size, "lines": count_lines(local), "sha256": sha[local.name], "checksum_verified": True,
+            "replication": replication, "block_size": block_size, "blocks": blocks, "fsck_status": fsck_status,
+            "loaded_at": loaded_at,
+        })
+    return records
 
 
 def main(argv=None):
