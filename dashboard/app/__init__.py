@@ -11,5 +11,9 @@ def create_app(config=None):
         app.config.update(config)
 
     from .services.repository import Repository
+    app.json.sort_keys = False  # keep columns in contract order
     app.extensions["repository"] = Repository(app.config["DATA_DIR"])
+
+    from .api import api
+    app.register_blueprint(api)
     return app
