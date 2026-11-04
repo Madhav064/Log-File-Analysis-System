@@ -37,6 +37,23 @@ def test_stage_fails_fast_with_the_owning_task_when_a_job_is_not_built_yet():
     assert "does not exist yet (task C7)" in r.stderr
 
 
+def test_job_name_is_the_module_or_the_repo_relative_script():
+    assert pipeline.job_name(pipeline.commands("etl", "local", [])[0]) == "loganalysis.etl.parse_logs"
+    assert pipeline.job_name(pipeline.commands("compare", "local", [])[0]) == "scripts/compare_engines.py"
+    assert pipeline.job_name(pipeline.commands("mapreduce", "local", [])[0]) == "mapreduce/run.py"
+
+
+def test_record_run_keeps_the_latest_run_of_each_job_and_fits_the_contract():
+    from loganalysis.common.reports import to_rows
+
+    runs = pipeline.record_run([], "etl", "a", "cluster", 0, 150.24, "ok")
+    runs = pipeline.record_run(runs, "analytics", "b", "cluster", 10, 60, "ok")
+    runs = pipeline.record_run(runs, "etl", "a", "cluster", 20, 140, "failed")
+    assert [(r["stage"], r["duration_sec"], r["status"]) for r in runs] == [("analytics", 60, "ok"),
+                                                                             ("etl", 140, "failed")]
+    to_rows("pipeline_runs", runs)  # raises if a column is missing or extra
+
+
 def test_unknown_only_value_is_rejected():
     r = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "pipeline.py"), "analytics", "--only", "bogus"],
                        capture_output=True, text=True)

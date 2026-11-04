@@ -15,6 +15,7 @@ import os
 import subprocess
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +51,21 @@ def commands(stage, env, only):
     return [spark_job("loganalysis.export.to_serving", env)]
 
 
+def job_name(cmd):
+    """The module or script a command runs, e.g. 'loganalysis.etl.parse_logs' or 'scripts/compare_engines.py'."""
+    if cmd[1] == "-m":
+        return cmd[2]
+    return Path(cmd[1]).relative_to(ROOT).as_posix()
+
+
+def record_run(runs, stage, job, env, started, seconds, status):
+    """Replace the row for (stage, job) in the pipeline_runs records, keeping every other stage's last run."""
+    row = {"stage": stage, "job": job, "env": env,
+           "started_at": datetime.fromtimestamp(started).astimezone().isoformat(timespec="seconds"),
+           "duration_sec": round(seconds, 1), "status": status}
+    return [r for r in runs if (r["stage"], r["job"]) != (stage, job)] + [row]
+
+
 def missing_module(cmd):
     """The `python -m` module this command needs if it does not exist yet, else None."""
     if cmd[1] != "-m":
@@ -75,7 +91,13 @@ def main(argv=None):
         cmd = [*COMPOSE, "exec", "-T", "client", "python", "scripts/pipeline.py", *(argv or sys.argv[1:])]
         sys.exit(subprocess.run(cmd).returncode)
 
+    # imported here, after the hop into the container, so the host needs nothing but Python and Docker
+    from loganalysis.common.config import load_config
+    from loganalysis.common.reports import read_report, write_report
+
     env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [SRC, os.environ.get("PYTHONPATH")]))}
+    cfg = load_config(args.env)
+    runs = read_report(cfg, "pipeline_runs") or []
     started = time.time()
     for stage in STAGES if args.stage == "all" else (args.stage,):
         for cmd in commands(stage, args.env, only):
@@ -84,7 +106,11 @@ def main(argv=None):
                 sys.exit(f"\n[{stage}] FAILED: {module} does not exist yet{task}")
             print(f"\n[{stage}] {time.strftime('%H:%M:%S')} start: {' '.join(cmd[1:])}", flush=True)
             t0 = time.time()
-            if subprocess.run(cmd, cwd=ROOT, env=env).returncode:
+            failed = subprocess.run(cmd, cwd=ROOT, env=env).returncode != 0
+            # the dashboard shows these runtimes (pipeline_runs report)
+            runs = record_run(runs, stage, job_name(cmd), args.env, t0, time.time() - t0, "failed" if failed else "ok")
+            write_report(cfg, "pipeline_runs", runs)
+            if failed:
                 sys.exit(f"\n[{stage}] FAILED after {time.time() - t0:.0f}s; stopping, later stages were not run")
             print(f"[{stage}] done in {time.time() - t0:.0f}s", flush=True)
     print(f"\nAll requested stages finished in {time.time() - started:.0f}s")
