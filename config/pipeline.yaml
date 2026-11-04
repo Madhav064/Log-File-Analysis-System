@@ -42,6 +42,7 @@ paths:
     analytics: data/local/analytics
     mapreduce: data/local/mapreduce
     serving: data/serving
+    reports: data/reports           # small JSON run reports (ingestion, stage runtimes), read by the export
   cluster:                        # inside the client container, against HDFS
     download_dir: data/raw
     raw: hdfs://namenode:9000/logs/raw/nasa
@@ -52,3 +53,4 @@ paths:
     analytics: hdfs://namenode:9000/logs/analytics
     mapreduce: hdfs://namenode:9000/logs/mapreduce
     serving: data/serving
+    reports: data/reports           # small JSON run reports (ingestion, stage runtimes), read by the export

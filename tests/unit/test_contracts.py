@@ -39,7 +39,8 @@ def test_config_has_every_setting_the_jobs_read():
     cfg = load_config("local")
     assert isinstance(cfg["top_n"], int) and isinstance(cfg["peaks_top_k"], int)
     assert {"z_threshold", "baseline_days", "min_baseline_points", "min_requests"} <= cfg["anomaly"].keys()
-    assert {"parsed", "rejected", "quality", "analytics", "raw_glob"} <= cfg["paths"].keys()
+    assert {"parsed", "rejected", "quality", "analytics", "raw_glob", "serving", "reports"} <= cfg["paths"].keys()
+    assert "://" not in load_config("cluster")["paths"]["reports"]  # plain Python writes it, so local disk
 
 
 def test_reports_are_separate_from_tables_and_have_unique_columns():
