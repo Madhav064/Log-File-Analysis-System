@@ -1,3 +1,4 @@
 -r jobs.txt
+-r dashboard.txt
 pytest>=8
 ruff>=0.5

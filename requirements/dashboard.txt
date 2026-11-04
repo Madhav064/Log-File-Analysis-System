@@ -1,0 +1,5 @@
+# The dashboard (Flask API + pages). Pinned; the dashboard image installs exactly these.
+flask==3.0.3
+markdown==3.7
+gunicorn==23.0.0
+pyyaml>=6
