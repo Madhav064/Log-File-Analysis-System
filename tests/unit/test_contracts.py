@@ -2,7 +2,7 @@
 import importlib.util
 
 from loganalysis.common.config import REPO_ROOT, load_config
-from loganalysis.contracts import ANOMALY_KINDS, TABLES, column_names, ddl
+from loganalysis.contracts import ANOMALY_KINDS, REPORTS, TABLES, column_names, ddl
 
 spec = importlib.util.spec_from_file_location("compare_engines", REPO_ROOT / "scripts" / "compare_engines.py")
 compare_engines = importlib.util.module_from_spec(spec)
@@ -40,6 +40,14 @@ def test_config_has_every_setting_the_jobs_read():
     assert isinstance(cfg["top_n"], int) and isinstance(cfg["peaks_top_k"], int)
     assert {"z_threshold", "baseline_days", "min_baseline_points", "min_requests"} <= cfg["anomaly"].keys()
     assert {"parsed", "rejected", "quality", "analytics", "raw_glob"} <= cfg["paths"].keys()
+
+
+def test_reports_are_separate_from_tables_and_have_unique_columns():
+    assert not REPORTS.keys() & TABLES.keys()
+    for name, report in REPORTS.items():
+        assert report.layer == "report", name
+        names = column_names(name)
+        assert len(names) == len(set(names)), name
 
 
 def test_anomaly_kinds():

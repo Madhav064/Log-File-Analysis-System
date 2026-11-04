@@ -82,6 +82,22 @@ TABLES = {
     ), "scripts/compare_engines.py"),
 }
 
+# Small run reports written as JSON by plain Python steps (no Spark) to <paths.reports>/<name>.json, in the
+# same {"columns": [...], "rows": [[...]]} shape as the serving files. The export copies them to the dashboard.
+# Timestamps here are ISO-8601 strings with their offset.
+REPORTS = {
+    "ingestion_report": Table("report", (               # one row per raw file
+        ("file", "string"), ("month", "string"), ("hdfs_path", "string"), ("local_bytes", "bigint"),
+        ("hdfs_bytes", "bigint"), ("lines", "bigint"), ("sha256", "string"), ("checksum_verified", "boolean"),
+        ("replication", "int"), ("block_size", "bigint"), ("blocks", "int"), ("fsck_status", "string"),
+        ("loaded_at", "timestamp"),
+    ), "loganalysis.ingestion.hdfs_loader"),
+    "pipeline_runs": Table("report", (                  # one row per job of the latest run of each stage
+        ("stage", "string"), ("job", "string"), ("env", "string"), ("started_at", "timestamp"),
+        ("duration_sec", "double"), ("status", "string"),
+    ), "scripts/pipeline.py"),
+}
+
 GRANULARITIES = ("minute", "hour", "day")          # traffic_peaks.granularity
 METRICS = ("requests", "error_rate")               # anomalies.metric
 ANOMALY_KINDS = ("spike", "drop", "gap")           # anomalies.kind
@@ -93,4 +109,5 @@ def ddl(name):
 
 
 def column_names(name):
-    return tuple(col for col, _ in TABLES[name].columns)
+    """Column names of a §6.4 table or of a run report."""
+    return tuple(col for col, _ in (TABLES.get(name) or REPORTS[name]).columns)
