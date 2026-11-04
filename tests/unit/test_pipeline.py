@@ -43,12 +43,15 @@ def test_job_name_is_the_module_or_the_repo_relative_script():
     assert pipeline.job_name(pipeline.commands("mapreduce", "local", [])[0]) == "mapreduce/run.py"
 
 
+T0 = 1_762_934_400  # a real 2025 epoch; Windows cannot convert timestamps near 0 to local time
+
+
 def test_record_run_keeps_the_latest_run_of_each_job_and_fits_the_contract():
     from loganalysis.common.reports import to_rows
 
-    runs = pipeline.record_run([], "etl", "a", "cluster", 0, 150.24, "ok")
-    runs = pipeline.record_run(runs, "analytics", "b", "cluster", 10, 60, "ok")
-    runs = pipeline.record_run(runs, "etl", "a", "cluster", 20, 140, "failed")
+    runs = pipeline.record_run([], "etl", "a", "cluster", T0, 150.24, "ok")
+    runs = pipeline.record_run(runs, "analytics", "b", "cluster", T0 + 10, 60, "ok")
+    runs = pipeline.record_run(runs, "etl", "a", "cluster", T0 + 20, 140, "failed")
     assert [(r["stage"], r["duration_sec"], r["status"]) for r in runs] == [("analytics", 60, "ok"),
                                                                              ("etl", 140, "failed")]
     to_rows("pipeline_runs", runs)  # raises if a column is missing or extra
