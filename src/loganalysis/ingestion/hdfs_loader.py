@@ -23,6 +23,31 @@ def hdfs_size(uri):
     return int(r.stdout.strip()) if r.returncode == 0 else None
 
 
+def parse_stat(text):
+    """Output of `hdfs dfs -stat "%b %r %o"` -> (bytes, replication, block_size, blocks)."""
+    size, replication, block_size = (int(v) for v in text.split())
+    return size, replication, block_size, -(-size // block_size) if size else 0  # ceil division
+
+
+def parse_fsck_status(text):
+    """'Status: HEALTHY' (or CORRUPT ...) from `hdfs fsck` output, or 'UNKNOWN'."""
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("Status:"):
+            return line.split(":", 1)[1].strip()
+    return "UNKNOWN"
+
+
+def count_lines(path):
+    """Lines as Spark counts them: a last line without a newline (the cut-off end of July) still counts."""
+    n, last = 0, b"\n"
+    with open(path, "rb") as f:
+        while chunk := f.read(1 << 20):
+            n += chunk.count(b"\n")
+            last = chunk[-1:]
+    return n + (last != b"\n")
+
+
 def load(cfg, force=False):
     paths = cfg["paths"]
     for key in LAYOUT:
