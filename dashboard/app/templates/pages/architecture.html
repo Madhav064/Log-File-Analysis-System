@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% block content %}
+{{ page_head(stage) }}
+
+<section class="card" style="margin-bottom:16px">
+  <div class="card-head"><div><h2>Data flow</h2>
+    <p>Read left to right. Every box opens the page for that stage. Dashed boxes are shared code used by several stages.</p></div></div>
+  <div class="card-body">
+    <div class="flow">
+      <div class="flow-col">
+        <span class="label">1 · Source</span>
+        <a class="flow-node" href="{{ url_for('views.page', slug='ingestion') }}"><span class="label">Dataset</span>
+          NASA HTTP access logs<br><span class="mono muted">Jul 1995 + Aug 1995 (.gz)</span></a>
+        <div class="flow-arrow">↓</div>
+        <a class="flow-node" href="{{ url_for('views.page', slug='ingestion') }}"><span class="label">03 Ingestion</span>
+          download → SHA-256 check → decompress → <code>hdfs dfs -put</code></a>
+      </div>
+      <div class="flow-col">
+        <span class="label">2 · Storage (HDFS)</span>
+        <div class="flow-node"><span class="label">/logs/raw</span>plain-text logs, 128 MB blocks</div>
+        <div class="flow-node"><span class="label">/logs/parsed</span>Parquet, one folder per day</div>
+        <div class="flow-node"><span class="label">/logs/rejected · /logs/quality</span>unreadable lines, quality report</div>
+        <div class="flow-node"><span class="label">/logs/analytics</span>one Parquet folder per table</div>
+        <div class="flow-node"><span class="label">/logs/mapreduce</span>MapReduce text output</div>
+      </div>
+      <div class="flow-col">
+        <span class="label">3 · Processing</span>
+        <a class="flow-node" href="{{ url_for('views.page', slug='etl') }}"><span class="label">04 Spark ETL</span>raw text → typed records</a>
+        <a class="flow-node" href="{{ url_for('views.page', slug='errors') }}"><span class="label">05–08 Spark analytics</span>
+          errors · traffic · top N · anomalies</a>
+        <a class="flow-node" href="{{ url_for('views.page', slug='engines') }}"><span class="label">MapReduce on YARN</span>
+          status_count · hourly_traffic · top_resources</a>
+        <div class="flow-node dashed"><span class="label">Shared parsing library</span>
+          <code>loganalysis.parsing</code>: one regex, used by Spark and by every MapReduce mapper</div>
+      </div>
+      <div class="flow-col">
+        <span class="label">4 · Validation</span>
+        <a class="flow-node" href="{{ url_for('views.page', slug='engines') }}"><span class="label">09 Compare + benchmark</span>
+          Spark results vs MapReduce results, row by row; runtime of each engine</a>
+      </div>
+      <div class="flow-col">
+        <span class="label">5 · Serving</span>
+        <a class="flow-node" href="{{ url_for('views.page', slug='export') }}"><span class="label">10 Export</span>
+          analytics Parquet → <code>data/serving/*.json</code></a>
+        <div class="flow-arrow">↓</div>
+        <a class="flow-node" href="{{ url_for('views.page', slug='export') }}"><span class="label">Flask REST API</span><code>/api/…</code></a>
+        <div class="flow-arrow">↓</div>
+        <a class="flow-node" href="{{ url_for('views.overview') }}"><span class="label">This dashboard</span>Chart.js pages</a>
+      </div>
+    </div>
+    <div class="flow-node dashed" style="margin-top:12px"><span class="label">Pipeline runner</span>
+      <code>python scripts/pipeline.py all --env cluster</code> runs every stage in order
+      (ingest → etl → analytics → mapreduce → compare → export) and stops at the first failure.</div>
+  </div>
+</section>
+
+<div class="grid g2">
+  {% call card("Technology stack", "Pinned versions (docs/VERSIONS.md).", "docs/VERSIONS.md, infra/Dockerfile") %}
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Component</th><th>Version</th><th>Role here</th></tr></thead>
+      <tbody>
+        <tr><td>Hadoop</td><td class="mono">3.4.1</td><td>HDFS storage, YARN scheduling, MapReduce jobs</td></tr>
+        <tr><td>Spark</td><td class="mono">3.5.3</td><td>Standalone cluster running the PySpark ETL and analytics</td></tr>
+        <tr><td>Python</td><td class="mono">3.10</td><td>PySpark jobs, MapReduce mappers and reducers (Hadoop Streaming), this dashboard</td></tr>
+        <tr><td>Java</td><td class="mono">11</td><td>Runs the Hadoop and Spark daemons</td></tr>
+        <tr><td>Base image</td><td class="mono">ubuntu:22.04</td><td>One image for every service, amd64 and arm64</td></tr>
+        <tr><td>Flask · Chart.js</td><td class="mono">3.0.3 · 4.4.7</td><td>REST API and charts</td></tr>
+      </tbody>
+    </table></div>
+  {% endcall %}
+  {% call card("Cluster services (lite profile)", "One container each, started by Docker Compose.", "infra/docker-compose.yml") %}
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Service</th><th>What it does</th><th class="r">Web UI</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">namenode</td><td>HDFS: keeps the list of files and where their blocks are</td><td class="r"><a href="http://localhost:9870">9870</a></td></tr>
+        <tr><td class="mono">datanode</td><td>HDFS: stores the blocks</td><td class="r">–</td></tr>
+        <tr><td class="mono">resourcemanager</td><td>YARN: hands out memory and CPU to MapReduce jobs</td><td class="r"><a href="http://localhost:8088">8088</a></td></tr>
+        <tr><td class="mono">nodemanager</td><td>YARN: runs the map and reduce tasks</td><td class="r">–</td></tr>
+        <tr><td class="mono">spark-master</td><td>Spark: schedules Spark applications</td><td class="r"><a href="http://localhost:8080">8080</a></td></tr>
+        <tr><td class="mono">spark-worker</td><td>Spark: runs the executors (2 cores, 1 GB)</td><td class="r">–</td></tr>
+        <tr><td class="mono">client</td><td>Where the pipeline runner and jobs are started</td><td class="r">–</td></tr>
+        <tr><td class="mono">dashboard</td><td>This website (Flask)</td><td class="r"><a href="http://localhost:5000">5000</a></td></tr>
+      </tbody>
+    </table></div>
+  {% endcall %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/architecture.js') }}"></script>{% endblock %}
