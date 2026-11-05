@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% block content %}
+{{ page_head(stage) }}
+
+<div class="grid g2" id="files"><div class="loading">Loading the ingestion report…</div></div>
+
+<section class="card" style="margin-bottom:16px">
+  <div class="card-head"><div><h2>What the loader does, in order</h2><p>Re-running it is safe: a file already in HDFS with the same size is skipped.</p></div></div>
+  <div class="card-body">
+    <div class="grid g6" style="margin:0">
+      {% for n, t, d in [
+        ("1", "Download", "Fetch both .gz files from the NASA archive, resuming if the connection drops."),
+        ("2", "Verify SHA-256", "Compare each file's fingerprint with the one recorded in config/pipeline.yaml."),
+        ("3", "Decompress", "gzip files cannot be split, so HDFS gets plain text that many tasks can read in parallel."),
+        ("4", "Upload", "hdfs dfs -put into /logs/raw/nasa/month=YYYY-MM/."),
+        ("5", "Verify size", "The size stored in HDFS must equal the local size, byte for byte."),
+        ("6", "Health check", "hdfs fsck reports the blocks and whether any are missing or corrupt."),
+      ] %}
+        <div class="card kpi"><span class="chip info">{{ n }}</span><h3 style="margin-top:8px">{{ t }}</h3><p class="note">{{ d }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<div class="grid g-wide">
+  {% call card("HDFS storage", "How the raw logs are stored across HDFS blocks.", "ingestion_report", "storage") %}
+    <div class="loading">Loading…</div>
+  {% endcall %}
+  {% call card("HDFS layout", "The folders the pipeline uses (plan §6.1).", "config/pipeline.yaml") %}
+<pre class="code">/logs/
+├── raw/nasa/
+│   ├── month=1995-07/NASA_access_log_Jul95
+│   └── month=1995-08/NASA_access_log_Aug95
+├── parsed/            Parquet, one folder per log_date
+├── rejected/          lines that could not be parsed
+├── quality/           one-row quality report
+├── analytics/&lt;table&gt;/  one folder per analytics table
+└── mapreduce/&lt;job&gt;/    MapReduce text output</pre>
+    <p class="muted" style="margin-top:12px">Run this stage with:</p>
+    <pre class="code" style="margin-top:6px">python scripts/pipeline.py ingest --env cluster</pre>
+  {% endcall %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/ingestion.js') }}"></script>{% endblock %}
