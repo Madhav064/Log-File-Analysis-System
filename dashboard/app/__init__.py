@@ -15,5 +15,7 @@ def create_app(config=None):
     app.extensions["repository"] = Repository(app.config["DATA_DIR"])
 
     from .api import api
+    from .views import views
     app.register_blueprint(api)
+    app.register_blueprint(views)
     return app
