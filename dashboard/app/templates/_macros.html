@@ -1,0 +1,24 @@
+{# page_head: breadcrumb, numbered title, one-line description, the page's own controls (caller) and the
+   link to this page's section of the guide. Use: {% call page_head(stage) %}controls{% endcall %} #}
+{% macro page_head(stage) -%}
+<div class="crumbs label"><span>{{ stage.group }}</span><span>{{ stage.title }}</span></div>
+<div class="page-head">
+  <div>
+    <h1>{{ stage.number }} · {{ stage.title }}</h1>
+    <p class="lead">{{ stage.summary }}</p>
+  </div>
+  <div class="controls">
+    {{ caller() if caller }}
+    <a class="btn" href="{{ url_for('views.guide') }}#stage-{{ stage.slug }}">How to read this page</a>
+  </div>
+</div>
+{%- endmacro %}
+
+{# card: a titled panel; source names the table(s) the content comes from. #}
+{% macro card(title, sub=None, source=None, body_id=None, cls='') -%}
+<section class="card {{ cls }}">
+  <div class="card-head"><div><h2>{{ title }}</h2>{% if sub %}<p>{{ sub }}</p>{% endif %}</div></div>
+  <div class="card-body" {% if body_id %}id="{{ body_id }}"{% endif %}>{{ caller() if caller }}</div>
+  {% if source %}<div class="card-foot">Source: <code>{{ source }}</code></div>{% endif %}
+</section>
+{%- endmacro %}

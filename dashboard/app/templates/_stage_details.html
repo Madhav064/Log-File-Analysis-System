@@ -1,0 +1,28 @@
+{# The technical facts of this stage: what it reads and writes, which code produced it, how long it took,
+   and the schema of every table shown on the page. Filled from config, contracts and the run reports. #}
+<details class="card stage-details" open>
+  <summary><span>Stage details: {{ stage.number }} {{ stage.title }}</span><span class="label"></span></summary>
+  <div class="card-body">
+    <dl class="kv">
+      <dt>Input</dt><dd>{{ stage.input }}</dd>
+      <dt>Output</dt><dd>{{ stage.output }}</dd>
+      <dt>Engine</dt><dd>{{ stage.engine }}</dd>
+      {% for j in details.jobs %}
+        <dt>Produced by</dt>
+        <dd>{{ j.job }}
+          {% if j.run %} · <span class="{{ 'chip ok' if j.run.status == 'ok' else 'chip bad' }}">{{ j.run.status }}</span>
+            in {{ '%.1f'|format(j.run.duration_sec) }} s (run {{ j.run.started_at[:16].replace('T', ' ') }}, env={{ j.run.env }})
+          {% else %} · <span class="faint">no recorded run</span>{% endif %}</dd>
+      {% endfor %}
+    </dl>
+    {% for t in details.tables %}
+      <div class="schema-title"><span class="label">Schema</span> <code>{{ t.name }}</code>
+        {% if t.missing %}<span class="chip warn">not exported</span>
+        {% elif t.rows is not none %}<span class="chip">{{ "{:,}".format(t.rows) }} rows</span>{% endif %}</div>
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Column</th><th>Type</th></tr></thead>
+        <tbody>{% for col, typ in t.schema %}<tr><td class="mono">{{ col }}</td><td class="mono muted">{{ typ }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    {% endfor %}
+  </div>
+</details>

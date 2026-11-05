@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ stage.title }} · Log File Analysis System</title>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="{{ url_for('views.overview') }}" style="color:inherit;text-decoration:none">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+          <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M4 6l2.5 2L4 10M8 10.5h4"/></svg>
+      </span>
+      <span><span class="brand-name">Log File Analysis</span><br><span class="brand-sub">BDA-422 · Hadoop + Spark</span></span>
+    </a>
+    <nav class="nav" aria-label="Pipeline stages">
+      {% for g in groups %}
+        <div class="nav-group label">{{ g }}</div>
+        {% for s in stages if s.group == g %}
+          <a href="{{ url_for('views.page', slug=s.slug) }}" class="{{ 'active' if s.slug == stage.slug }}">
+            <span class="n">{{ s.number }}</span><span>{{ s.title }}</span></a>
+        {% endfor %}
+      {% endfor %}
+      <div class="nav-group label">Help</div>
+      <a href="{{ url_for('views.guide') }}" class="{{ 'active' if stage.slug == 'guide' }}">
+        <span class="n">?</span><span>Guide</span></a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="label">Stack</div>
+      <div class="mono muted" style="margin-top:4px">Hadoop 3.4.1 · Spark 3.5.3<br>Python 3.10 · Flask</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-row">
+        <div>
+          <div class="topbar-title">Log File Analysis System</div>
+          <div class="topbar-sub">NASA HTTP access logs, July–August 1995</div>
+        </div>
+        {% set q = head.quality %}
+        <span class="badge-dataset">
+          {% if q %}{{ "{:,}".format(q.total_lines) }} lines | {{ q.min_ts[:10] }} → {{ q.max_ts[:10] }} | server time UTC{{ q.min_ts[19:] }}
+          {% else %}No export yet{% endif %}
+        </span>
+        <span class="topbar-spacer"></span>
+        <span class="run-status">
+          {% if last_run %}
+            <span class="dot {{ 'bad' if any_failed else 'ok' }}"></span>
+            <span>Last pipeline run: <span class="mono">{{ last_run[:16].replace('T', ' ') }}</span>
+              {{ '(a stage failed)' if any_failed else '' }}</span>
+          {% elif head.manifest %}
+            <span class="dot ok"></span><span>Exported <span class="mono">{{ head.manifest.generated_at[:16].replace('T', ' ') }}</span></span>
+          {% else %}
+            <span class="dot"></span><span class="muted">Pipeline not run yet</span>
+          {% endif %}
+        </span>
+        <button class="theme-toggle" type="button" data-theme-toggle>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 000 12z" fill="currentColor"/></svg>
+          <span data-theme-label>Dark mode</span>
+        </button>
+      </div>
+      <nav class="stepper" aria-label="Pipeline flow">
+        {% for label, slug in stepper %}
+          {% if not loop.first %}<span class="step-arrow">→</span>{% endif %}
+          <a class="step {{ 'current' if current_step == loop.index0 }} {{ 'done' if step_done[loop.index0] }}"
+             href="{{ url_for('views.page', slug=slug) }}">
+            {% if step_done[loop.index0] %}<span class="tick">✓</span>{% endif %}{{ loop.index }}. {{ label }}</a>
+        {% endfor %}
+      </nav>
+    </header>
+
+    <main class="page">
+      {% block content %}{% endblock %}
+      {% if stage.slug != 'guide' %}
+        {% include "_stage_details.html" %}
+        <div class="pager">
+          {% if prev %}<a class="btn" href="{{ url_for('views.page', slug=prev.slug) }}">← {{ prev.number }} {{ prev.title }}</a>{% else %}<span></span>{% endif %}
+          <span class="label">Stage {{ stage.number }} of 10</span>
+          {% if next %}<a class="btn primary" href="{{ url_for('views.page', slug=next.slug) }}">{{ next.number }} {{ next.title }} →</a>{% else %}<span></span>{% endif %}
+        </div>
+      {% endif %}
+    </main>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/gaps.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
