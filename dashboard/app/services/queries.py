@@ -144,7 +144,17 @@ def gap_runs(anomaly_rows):
             runs[-1]["end"], runs[-1]["hours"] = ts, runs[-1]["hours"] + 1
         else:
             runs.append({"start": ts, "end": ts, "hours": 1})
+    for run in runs:
+        run["cause"] = gap_cause(run)
     return runs
+
+
+def gap_cause(run):
+    """'missing_data' when the run lasts until the end of a month: the logs come as one file per month, so the
+    hours were never in any file (the July file stops on 28 Jul). Otherwise 'outage': inside a file, the
+    server itself logged nothing (the hurricane shutdown of 1-3 Aug)."""
+    after = datetime.fromisoformat(run["end"]) + timedelta(hours=1)
+    return "missing_data" if after.month != datetime.fromisoformat(run["end"]).month else "outage"
 
 
 def top_n(rows, key, n):
