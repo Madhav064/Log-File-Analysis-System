@@ -1,0 +1,52 @@
+/* Colour, type and shape tokens (from the Stitch design system, "Technical Monograph & Analytics").
+   Light is the default; dark applies when the viewer's system prefers it, unless they chose a theme with the
+   toggle (data-theme on <html>). Charts read these same variables. */
+
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap;
+  src: url("../vendor/fonts/ibm-plex-sans-400.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap;
+  src: url("../vendor/fonts/ibm-plex-sans-500.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap;
+  src: url("../vendor/fonts/ibm-plex-sans-600.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap;
+  src: url("../vendor/fonts/jetbrains-mono-400.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap;
+  src: url("../vendor/fonts/jetbrains-mono-500.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 600; font-display: swap;
+  src: url("../vendor/fonts/jetbrains-mono-600.woff2") format("woff2"); }
+
+:root {
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --radius-sm: 4px; --radius: 6px; --radius-lg: 8px;
+
+  /* light */
+  --bg: #f9f9ff;
+  --surface: #ffffff;
+  --surface-2: #f2f3fc;
+  --surface-3: #e6e8f0;
+  --border: #d9dbe3;
+  --border-strong: #c4c6cf;
+  --text: #191c22;
+  --text-muted: #43474e;
+  --text-faint: #74777f;
+  --accent: #1f3a5f;          /* navigation, buttons */
+  --accent-text: #ffffff;
+  --link: #1f5fbf;
+  --chart-1: #1f5fbf;         /* main series */
+  --chart-2: #8250df;         /* comparison series (MapReduce, bytes) */
+  --chart-3: #0f7b6c;
+  --chart-4: #b35900;
+  --success: #1a7f37;
+  --warning: #9a6700;
+  --error: #c62828;
+  --purple: #8250df;
+  --gap: rgba(116, 119, 127, 0.18);       /* data gap band */
+  --outage: rgba(198, 40, 40, 0.10);      /* outage band */
+  --grid: rgba(25, 28, 34, 0.08);
+  --tint-success: rgba(26, 127, 55, 0.10);
+  --tint-warning: rgba(154, 103, 0, 0.10);
+  --tint-error: rgba(198, 40, 40, 0.08);
+  --tint-accent: rgba(31, 95, 191, 0.08);
+  color-scheme: light;
+}
