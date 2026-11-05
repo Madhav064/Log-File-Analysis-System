@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% block content %}
+{{ page_head(stage) }}
+
+<div class="grid g6" id="kpis"><div class="loading">Loading the headline numbers…</div></div>
+
+<div class="grid g-wide">
+  <section class="card">
+    <div class="card-head">
+      <div><h2>Requests per day</h2><p>Every request the server logged, counted per day in the server's own clock (UTC−04:00).</p></div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--chart-1)"></span>Requests</span>
+        <span><span class="swatch" style="background:var(--gap)"></span>No log data</span>
+        <span><span class="swatch" style="background:var(--outage)"></span>Server outage</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="chart-box" id="daily-box"><canvas id="daily-chart" aria-label="Requests per day"></canvas></div>
+      <div class="grid g2" id="gap-notes" style="margin:12px 0 0"></div>
+    </div>
+    <div class="card-foot">Source: <code>traffic_daily</code>, gaps from <code>anomalies</code></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>Responses by status class</h2><p>2xx success · 3xx redirect · 4xx client error · 5xx server error</p></div></div>
+    <div class="card-body">
+      <div class="chart-box short"><canvas id="class-chart" aria-label="Requests by status class"></canvas></div>
+      <div id="class-table" style="margin-top:12px"></div>
+    </div>
+    <div class="card-foot">Source: <code>status_counts</code></div>
+  </section>
+</div>
+
+<div class="grid g2">
+  {% call card("What the data shows", "Facts read from the analysis tables.", "traffic_peaks, day_of_week_profile, hour_of_day_profile, top_resources_by_hits", "findings") %}
+    <div class="loading">Loading…</div>
+  {% endcall %}
+  {% call card("Pipeline at a glance", "Each stage, the engine that ran it, its latest runtime and result.", "pipeline_runs, manifest.json", "glance") %}
+    <div class="loading">Loading…</div>
+  {% endcall %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/overview.js') }}"></script>{% endblock %}
