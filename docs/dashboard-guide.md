@@ -49,3 +49,26 @@ If the pipeline has never run, the charts say **"No data yet"** and show the com
 **Light and dark mode:** the dashboard starts in the same mode as your computer. The button in the top bar switches between them, and the browser remembers your choice.
 
 **Time:** all times are the **server's own clock**, which was 4 hours behind UTC (written −04:00). "09:00" means 9 in the morning in Florida, where the server was.
+
+## 01 · Overview {#stage-overview}
+
+The summary of everything on one page.
+
+- **Total requests:** how many log lines could be read, in other words how many requests the server answered. The small text also gives all lines read and how many were unreadable.
+- **Unique hosts:** how many different computers made requests. It is an exact count of distinct names and addresses.
+- **Data served:** the total size of all answers the server sent.
+- **Error rate:** the share of requests that failed, meaning those with a **status code** of 400 or more.
+- **Busiest hour:** the single hour with the most requests, and how many it had.
+- **Date range:** how many calendar days the logs cover, and how many of them actually have traffic. These differ because of the two holes in the data explained [below](#gaps).
+- **Requests per day:** one point per day. The grey band marks days **with no log data**, and the red band marks the **server outage**. The notes under the chart give the exact hours.
+- **Responses by status class:** the share of answers in each family: 2xx success, 3xx redirect, 4xx client error, 5xx server error.
+- **What the data shows:** four facts read straight from the tables: the busiest day, the daily rhythm, weekends compared with weekdays, and the most requested file.
+- **Pipeline at a glance:** each stage, the engine that ran it, how long it took and whether it worked. Click a stage to open its page.
+
+## 02 · Architecture {#stage-architecture}
+
+A map of the system. It doesn't depend on the data.
+
+- **Data flow:** read it left to right. The logs come in (Source), are stored in HDFS (Storage), processed by Spark and MapReduce (Processing), checked against each other (Validation), then exported and shown here (Serving). Dashed boxes are shared parts: the **parser** used by both engines, and the **pipeline runner** that starts every stage.
+- **Technology stack:** the software and versions used.
+- **Cluster services:** the programs (**containers**) that make up the cluster, what each does, and the address of its own web page where it has one.
