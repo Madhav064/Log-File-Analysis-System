@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% block content %}
+{{ page_head(stage) }}
+
+<div class="grid g2">
+  <section class="card">
+    <div class="card-head"><div><h2>How an hour is judged</h2><p>The same method for requests per hour and for the error rate.</p></div></div>
+    <div class="card-body">
+      <p>Each hour is compared with <strong>the same hour of day on the previous {{ anomaly_cfg.baseline_days }} days</strong>
+        (09:00 with the last {{ anomaly_cfg.baseline_days }} mornings at 09:00), because traffic always rises and falls through the day.</p>
+      <pre class="code" style="margin:12px 0">z = (value − mean of those hours) ÷ standard deviation of those hours</pre>
+      <ul class="muted" style="margin:0;padding-left:18px;line-height:22px">
+        <li><strong>Spike</strong>: z above +{{ anomaly_cfg.z_threshold }}, far busier than usual.</li>
+        <li><strong>Drop</strong>: z below −{{ anomaly_cfg.z_threshold }}, far quieter than usual.</li>
+        <li><strong>Gap</strong>: no requests at all. Gap hours are left out of every baseline, so an outage does not make the next week look normal.</li>
+        <li>An hour is only judged when at least {{ anomaly_cfg.min_baseline_points }} earlier days are available;
+          an hour's error rate only when it had at least {{ anomaly_cfg.min_requests }} requests.</li>
+      </ul>
+    </div>
+    <div class="card-foot">Settings: <code>config/pipeline.yaml → anomaly</code> · z_threshold {{ anomaly_cfg.z_threshold }} ·
+      baseline_days {{ anomaly_cfg.baseline_days }} · min_baseline_points {{ anomaly_cfg.min_baseline_points }} · min_requests {{ anomaly_cfg.min_requests }}</div>
+  </section>
+  {% call card("What was flagged", "Number of flagged hours by metric and kind.", "anomalies", "counts") %}
+    <div class="loading">Loading…</div>
+  {% endcall %}
+</div>
+
+<section class="card" style="margin-bottom:16px">
+  <div class="card-head"><div><h2>Requests per hour, with flagged hours</h2>
+    <p>▲ spike · ▼ drop · shaded bands: hours with no requests. Use the date boxes to zoom in.</p></div>
+    <div class="controls"><input type="date" data-range="from" aria-label="From"><input type="date" data-range="to" aria-label="To"></div></div>
+  <div class="card-body"><div class="chart-box tall" id="chart-box"><canvas id="anomaly-chart" aria-label="Hourly requests with anomalies"></canvas></div>
+    <div class="grid g2" id="gap-notes" style="margin:12px 0 0"></div></div>
+  <div class="card-foot">Source: <code>traffic_hourly</code>, <code>anomalies</code></div>
+</section>
+
+<section class="card">
+  <div class="card-head"><div><h2>Every flagged hour</h2><p>Gap rows have no baseline or z-score: there was nothing to compare.</p></div>
+    <div class="controls">
+      <span class="label">Metric</span>
+      <div class="seg" data-seg="metric"><button data-v="" class="on">All</button><button data-v="requests">Requests</button><button data-v="error_rate">Error rate</button></div>
+      <span class="label">Kind</span>
+      <div class="seg" data-seg="kind"><button data-v="" class="on">All</button><button data-v="spike">Spike</button><button data-v="drop">Drop</button><button data-v="gap">Gap</button></div>
+    </div></div>
+  <div class="card-body" id="list"><div class="loading">Loading…</div></div>
+  <div class="card-foot" style="display:flex;justify-content:space-between;align-items:center">
+    <span>Source: <code>anomalies</code></span><span id="pager"></span></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/anomalies.js') }}"></script>{% endblock %}
