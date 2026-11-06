@@ -4,6 +4,8 @@ from pathlib import Path
 
 from flask import Blueprint, abort, current_app, render_template
 
+from loganalysis.common.config import load_config
+
 from ..services.repository import DataMissing
 from ..services.stages import BY_SLUG, STAGES, STEPPER, neighbours, schema
 
@@ -13,6 +15,7 @@ views = Blueprint("views", __name__)
 STEP_OF = {"ingestion": 1, "etl": 2, "errors": 3, "traffic": 3, "top-n": 3, "anomalies": 3, "engines": 4,
            "export": 5}
 GROUPS = ["Overview", "Data pipeline", "Analytics", "Validation", "Serving"]
+ANOMALY_CFG = load_config("cluster")["anomaly"]   # thresholds shown on the Anomalies page
 
 
 def repo():
@@ -81,7 +84,7 @@ def render_stage(slug):
         f"pages/{slug}.html", stage=stage, stages=STAGES, groups=GROUPS, stepper=STEPPER, step_done=done,
         current_step=STEP_OF.get(slug), prev=prev, next=nxt, details=stage_details(stage, by_job),
         last_run=last_run, any_failed=any_failed, head=header(),
-        example=parse_example() if slug == "etl" else None)
+        example=parse_example() if slug == "etl" else None, anomaly_cfg=ANOMALY_CFG)
 
 
 @views.get("/")
