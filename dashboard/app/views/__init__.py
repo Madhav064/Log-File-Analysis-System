@@ -57,6 +57,22 @@ def stage_details(stage, by_job):
     return {"tables": tables, "jobs": jobs}
 
 
+def parse_example():
+    """The first line of the bundled real sample, run through the project's own parser: the ETL page's
+    before/after example is computed, not typed in."""
+    from loganalysis.common.config import REPO_ROOT
+    from loganalysis.parsing.parser import parse_line
+
+    sample = REPO_ROOT / "data" / "sample" / "nasa_sample.log"
+    if not sample.exists():
+        return None
+    with open(sample, encoding="utf-8", errors="replace") as f:
+        line = f.readline().rstrip("\n")
+    record = parse_line(line)
+    return {"line": line, "fields": [(k, v.isoformat() if hasattr(v, "isoformat") else v)
+                                     for k, v in record._asdict().items()]}
+
+
 def render_stage(slug):
     stage = BY_SLUG.get(slug) or abort(404)
     by_job, done, last_run, any_failed = run_state()
@@ -64,7 +80,8 @@ def render_stage(slug):
     return render_template(
         f"pages/{slug}.html", stage=stage, stages=STAGES, groups=GROUPS, stepper=STEPPER, step_done=done,
         current_step=STEP_OF.get(slug), prev=prev, next=nxt, details=stage_details(stage, by_job),
-        last_run=last_run, any_failed=any_failed, head=header())
+        last_run=last_run, any_failed=any_failed, head=header(),
+        example=parse_example() if slug == "etl" else None)
 
 
 @views.get("/")
