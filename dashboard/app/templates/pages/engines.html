@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% block content %}
+{{ page_head(stage) }}
+
+<div class="grid g3" id="verdicts"><div class="loading">Loading the comparison…</div></div>
+
+<div class="grid g2">
+  {% call card("Spark", "Engine for the ETL and all analytics.", "src/loganalysis/analytics/") %}
+    <p>Reads the parsed Parquet data and works on it <strong>in memory</strong>, as DataFrames, on the Spark standalone cluster
+      (one worker, 2 cores, 1 GB in the lite profile).</p>
+    <pre class="code" style="margin-top:12px">parsed Parquet → filter / group / count (in memory) → analytics Parquet</pre>
+  {% endcall %}
+  {% call card("Hadoop MapReduce", "The classic engine, run on YARN through Hadoop Streaming.", "mapreduce/") %}
+    <p>Reads the <strong>raw text</strong> and runs Python scripts: a mapper on every block, a combiner, a shuffle that
+      sorts by key, then a reducer. Intermediate results go to disk between the steps.</p>
+    <pre class="code" style="margin-top:12px">mapper.py → combiner → shuffle + sort → reducer.py → /logs/mapreduce/&lt;job&gt;</pre>
+    <p class="muted" style="margin-top:8px">Both engines use the same parser (<code>loganalysis.parsing</code>), so a line is
+      either read the same way by both or rejected by both.</p>
+  {% endcall %}
+</div>
+
+<section class="card" style="margin-bottom:16px">
+  <div class="card-head"><div><h2>How long each job took</h2>
+    <p>Median of the benchmark runs, including start-up time, as a person running the job would wait. Shorter is better.</p></div>
+    <div class="legend"><span><span class="swatch" style="background:var(--chart-1)"></span>Spark</span>
+      <span><span class="swatch" style="background:var(--chart-2)"></span>MapReduce</span></div></div>
+  <div class="card-body"><div class="chart-box" id="bench-box"><canvas id="bench-chart" aria-label="Runtime by job and engine"></canvas></div></div>
+  <div class="card-foot">Source: <code>engine_benchmark</code> (written by <code>scripts/compare_engines.py</code>)</div>
+</section>
+
+{% call card("Benchmark results", "One row per job and engine.", "engine_benchmark", "bench-table") %}
+  <div class="loading">Loading…</div>
+{% endcall %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/engines.js') }}"></script>{% endblock %}
