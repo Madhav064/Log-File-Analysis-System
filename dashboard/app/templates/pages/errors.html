@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% block content %}
+{% call page_head(stage) %}
+  <span class="chip">Error = HTTP status 400 or higher</span>
+{% endcall %}
+
+<div class="grid g-wide">
+  {% call card("Requests by status code", "Log scale: each step up is ten times more requests, so the rare codes stay visible.", "status_counts") %}
+    <div class="chart-box" id="status-box"><canvas id="status-chart" aria-label="Requests by status code"></canvas></div>
+  {% endcall %}
+  {% call card("Status codes in numbers", "What each code means and how often it appears.", "status_counts", "status-table") %}
+    <div class="loading">Loading…</div>
+  {% endcall %}
+</div>
+
+<section class="card" style="margin-bottom:16px">
+  <div class="card-head">
+    <div><h2>Errors over time</h2><p>Error rate = errors ÷ all requests in that hour or day. A break in the line means no requests were logged.</p></div>
+    <div class="controls">
+      <div class="seg" data-seg="granularity"><button data-v="hour">Hour</button><button data-v="day" class="on">Day</button></div>
+      <input type="date" data-range="from" aria-label="From"><input type="date" data-range="to" aria-label="To">
+    </div>
+  </div>
+  <div class="card-body"><div class="chart-box tall" id="timeline-box"><canvas id="timeline-chart" aria-label="Error rate over time"></canvas></div></div>
+  <div class="card-foot">Source: <code>error_timeline_hourly</code> (days are summed from hours)</div>
+</section>
+
+<div class="grid g2">
+  <section class="card">
+    <div class="card-head"><div><h2>Resources with the most errors</h2><p>404 = "not found": these are broken links.</p></div>
+      <select id="status-filter" aria-label="Status"></select></div>
+    <div class="card-body" id="top-resources"><div class="loading">Loading…</div></div>
+    <div class="card-foot">Source: <code>top_error_resources</code> (top N for each error status)</div>
+  </section>
+  {% call card("Hosts with the most errors", "Computers whose requests failed most often.", "top_error_hosts", "top-hosts") %}
+    <div class="loading">Loading…</div>
+  {% endcall %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/errors.js') }}"></script>{% endblock %}
