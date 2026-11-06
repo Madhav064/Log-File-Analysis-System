@@ -94,3 +94,25 @@ function segmented(name, onChange) {
     onChange(b.dataset.v);
   });
 }
+
+// Date range inputs <input type=date data-range="from|to">, limited to the dates in the data (from the
+// quality report). Calls onChange({from, to}) whenever either changes.
+async function dateRange(onChange) {
+  const from = document.querySelector('[data-range="from"]'), to = document.querySelector('[data-range="to"]');
+  if (!from || !to) return null;
+  try {
+    const q = (await API.get("/pipeline/quality")).data;
+    for (const el of [from, to]) { el.min = q.min_ts.slice(0, 10); el.max = q.max_ts.slice(0, 10); }
+    from.value = from.min; to.value = to.max;
+  } catch (e) { /* no data yet: the charts show the empty state */ }
+  const fire = () => onChange({ from: from.value, to: to.value });
+  from.addEventListener("change", fire);
+  to.addEventListener("change", fire);
+  return { from: from.value, to: to.value };
+}
+
+// x-axis tick label for hour or day labels: "13 Jul" or "13 Jul 09:00"
+function tickLabel(label, granularity) {
+  const s = fmt.ts(label, false).replace(" 1995", "");
+  return granularity === "hour" ? s : s.slice(0, 6);
+}
