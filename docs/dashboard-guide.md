@@ -108,3 +108,37 @@ How the raw logs got into the cluster's storage.
   - Spark and plain Python read every line the same way;
   - every table has exactly the columns it should;
   - times stay in the server's clock.
+
+## 05 · Errors {#stage-errors}
+
+An **error** is any request whose **status code** is 400 or higher.
+
+- **Requests by status code:** one bar per code. The height scale is **logarithmic**: each step up means ten times more. Without it, the rare codes (a few dozen 500s) would be invisible next to millions of 200s.
+- **Status codes in numbers:** the same data as a table, with what each code means (404 = "not found", 500 = "server error" …).
+- **Errors over time:** the percentage of requests that failed, as two lines: 4xx (problems with the request, mostly broken links) and 5xx (problems on the server).
+  - **Hour/Day** changes how finely time is cut.
+  - The **date boxes** zoom in on part of the two months.
+  - A break in a line means nothing was logged then.
+- **Resources with the most errors:** pages or files that failed most often. Choose a status in the box; 404 lists the **broken links**.
+- **Hosts with the most errors:** the computers whose requests failed most often.
+
+## 06 · Traffic {#stage-traffic}
+
+When the site was busy.
+
+- **Requests over time:** the solid line is requests and the dashed line is **unique hosts**, both per hour or per day. Use **Hour/Day** and the date boxes as on the Errors page. The grey and red bands are the [two holes in the data](#gaps).
+- **Average requests by hour of day:** a typical day, hour by hour. The darkest bar is the busiest hour.
+- **Average requests by day of week:** a typical week. Weekend days are drawn in a second colour.
+- **Busiest periods:** the top 10 minutes, hours and days. Use the tabs to switch.
+
+"Average" here means averaged over the days that actually have traffic, so the missing days don't drag the averages down.
+
+## 07 · Top N {#stage-top-n}
+
+"Top N" means "the N largest": the most popular things.
+
+- **Rank by Hits/Bytes:** *hits* counts requests. *Bytes* counts data sent, so a large file asked for less often can still rank high.
+- **Show 10/20:** how many to list.
+- **Most requested resources:** pages and files, longest bar first. Long paths are shortened; hover to see the full path.
+- **Most active hosts:** the computers that made the most requests, and how much data they received.
+- **Requests by file type:** the mix of file types, taken from the file extension (gif, html, jpg …). "directory" means a folder address ending in `/`, and "none" means no extension. The many rare types are grouped as "other".
