@@ -1,13 +1,9 @@
 """Every page renders its frame (sidebar, stepper, stage details) even before any export exists."""
-from pathlib import Path
-
 import pytest
 from app import create_app
 from app.services.stages import STAGES
 
-TEMPLATES = Path(__file__).resolve().parents[1] / "app" / "templates" / "pages"
-# pages are added one at a time; a stage without its template yet is skipped here
-PAGES = [s["slug"] for s in STAGES if (TEMPLATES / f"{s['slug']}.html").exists()]
+PAGES = [s["slug"] for s in STAGES]
 
 
 @pytest.fixture
