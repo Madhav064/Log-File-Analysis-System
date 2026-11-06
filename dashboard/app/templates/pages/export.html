@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% set ENDPOINTS = [
+  ("/api/summary", "", "Headline numbers for the Overview"),
+  ("/api/errors/status", "", "Requests per status code, and per class"),
+  ("/api/errors/timeline", "granularity=hour|day, from, to", "Errors and error rate over time"),
+  ("/api/errors/top-resources", "n, status", "Resources with the most errors"),
+  ("/api/errors/top-hosts", "n", "Hosts with the most errors"),
+  ("/api/traffic/timeline", "granularity=hour|day, from, to", "Requests, bytes and hosts over time"),
+  ("/api/traffic/profile", "by=hour|weekday", "Average day and average week"),
+  ("/api/traffic/peaks", "granularity=minute|hour|day", "Busiest periods, ranked"),
+  ("/api/top/resources", "by=hits|bytes, n", "Top resources"),
+  ("/api/top/hosts", "n", "Most active hosts"),
+  ("/api/top/resource-types", "", "Requests by file type"),
+  ("/api/anomalies", "metric, kind", "Flagged hours, counts and gap runs"),
+  ("/api/pipeline/quality", "", "The ETL's quality report"),
+  ("/api/pipeline/benchmark", "", "Spark vs MapReduce benchmark"),
+  ("/api/pipeline/ingestion", "", "What the HDFS loader stored"),
+  ("/api/pipeline/runs", "", "Runtime and result of every pipeline job"),
+  ("/api/meta/stages", "", "This dashboard's stages, paths and schemas"),
+  ("/api/health", "", "Which data files exist and when they were exported"),
+] %}
+{% block content %}
+{{ page_head(stage) }}
+
+<div class="grid g3">
+  <div class="card kpi"><div class="label">1 · Spark tables</div><h3 style="margin-top:8px">Parquet in HDFS</h3>
+    <p class="note">One folder per table under <code>/logs/analytics/</code>. Fast for Spark, but a web page cannot read it.</p></div>
+  <div class="card kpi"><div class="label">2 · Export job</div><h3 style="margin-top:8px">Parquet → JSON</h3>
+    <p class="note">Reads each small table, writes timestamps with their −04:00 offset, refuses a table too large for a browser,
+      and writes <code>manifest.json</code> last so a half-finished export is never used.</p></div>
+  <div class="card kpi"><div class="label">3 · Flask API</div><h3 style="margin-top:8px">JSON → this dashboard</h3>
+    <p class="note">The API reads only those JSON files, so the dashboard runs even when the cluster is stopped.</p></div>
+</div>
+
+{% call card("Exported files", "What the last export wrote to data/serving/.", "manifest.json", "files") %}
+  <div class="loading">Loading…</div>
+{% endcall %}
+
+<div class="grid g2" style="margin-top:16px">
+  {% call card("API endpoints", "Every endpoint returns JSON. Click one to see its live answer.", "dashboard/app/api/") %}
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>GET</th><th>Parameters</th><th>Returns</th></tr></thead>
+      <tbody>{% for path, params, what in ENDPOINTS %}
+        <tr><td><a class="mono" href="#" data-try="{{ path }}">{{ path }}</a></td><td class="mono muted">{{ params }}</td><td>{{ what }}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+    <p class="muted" style="margin-top:12px">Errors come back as <code>{"error": "…", "code": 400}</code>. A bad parameter gives
+      400; a file that has not been exported gives 503 with the command to run.</p>
+  {% endcall %}
+  <section class="card">
+    <div class="card-head"><div><h2>Live response</h2><p id="try-url" class="mono">Choose an endpoint</p></div></div>
+    <div class="card-body"><pre class="code" id="try-out" style="max-height:560px">{ }</pre></div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/export.js') }}"></script>{% endblock %}
