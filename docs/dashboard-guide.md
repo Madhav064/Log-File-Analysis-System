@@ -72,3 +72,39 @@ A map of the system. It doesn't depend on the data.
 - **Data flow:** read it left to right. The logs come in (Source), are stored in HDFS (Storage), processed by Spark and MapReduce (Processing), checked against each other (Validation), then exported and shown here (Serving). Dashed boxes are shared parts: the **parser** used by both engines, and the **pipeline runner** that starts every stage.
 - **Technology stack:** the software and versions used.
 - **Cluster services:** the programs (**containers**) that make up the cluster, what each does, and the address of its own web page where it has one.
+
+## 03 · Ingestion (HDFS) {#stage-ingestion}
+
+How the raw logs got into the cluster's storage.
+
+- **One card per file** (July and August):
+  - **Lines:** how many lines the file has.
+  - **Size:** how big it is.
+  - **Partition:** the folder it went into (`month=1995-07`).
+  - **SHA-256:** the file's **checksum**, a fingerprint that proves the download is complete and unchanged.
+  - **Blocks:** how many pieces HDFS cut the file into.
+  - **Size check:** confirms that the copy in HDFS is exactly as large as the file on disk.
+- **What the loader does, in order:** the six steps, from download to health check.
+- **HDFS storage:**
+  - the total stored;
+  - the number of **blocks**;
+  - the **replication** (how many copies of each block are kept);
+  - the result of the **fsck** health check. HEALTHY means no block is missing or damaged.
+  - The bar shows the blocks to scale. Splitting files into blocks is what lets many workers read them at the same time.
+- **HDFS layout:** the folders the pipeline uses, and the command that runs this stage.
+
+## 04 · Parsing & ETL {#stage-etl}
+
+**ETL** means *extract, transform, load*: here, turning raw text lines into tidy columns.
+
+- **Lines read / Parsed / Rejected / Reject rate:** every line is either parsed (turned into columns) or rejected (kept aside with a reason). Almost every line parses.
+- **One line, before and after:** a real line from the logs, and the 13 fields the parser makes from it. The table explains each field.
+- **Parsed vs rejected:** the bar shows the split. The rejected part is drawn wider than it really is, so you can see it at all. The table lists each **rejection reason**:
+  - `NO_MATCH`: the line is not in the expected format at all, such as the cut-off last line of the July file.
+  - `BAD_REQUEST`: the request part is garbage, such as binary junk.
+  - `BAD_TIMESTAMP` and `BAD_STATUS`: an impossible date, or a status number outside 100–599.
+- **Quality checks:**
+  - nothing is lost (parsed + rejected = lines read);
+  - Spark and plain Python read every line the same way;
+  - every table has exactly the columns it should;
+  - times stay in the server's clock.
