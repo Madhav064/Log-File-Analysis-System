@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% block content %}
+{{ page_head(stage) }}
+
+<div class="grid g4" id="kpis"><div class="loading">Loading…</div></div>
+
+<section class="card" style="margin-bottom:16px">
+  <div class="card-head">
+    <div><h2>Requests over time</h2><p>Grey band: no log data. Red band: server outage. A break in the line means nothing was logged.</p></div>
+    <div class="controls">
+      <div class="seg" data-seg="granularity"><button data-v="hour">Hour</button><button data-v="day" class="on">Day</button></div>
+      <input type="date" data-range="from" aria-label="From"><input type="date" data-range="to" aria-label="To">
+    </div>
+  </div>
+  <div class="card-body"><div class="chart-box tall" id="timeline-box"><canvas id="timeline-chart" aria-label="Requests over time"></canvas></div>
+    <div class="grid g2" id="gap-notes" style="margin:12px 0 0"></div></div>
+  <div class="card-foot">Source: <code>traffic_hourly</code> / <code>traffic_daily</code></div>
+</section>
+
+<div class="grid g2">
+  {% call card("Average requests by hour of day", "Server time (UTC−04:00). Averaged over the days that had traffic.", "hour_of_day_profile") %}
+    <div class="chart-box" id="hour-box"><canvas id="hour-chart" aria-label="Requests by hour of day"></canvas></div>
+  {% endcall %}
+  {% call card("Average requests by day of week", "Averaged over the days that had traffic.", "day_of_week_profile") %}
+    <div class="chart-box" id="weekday-box"><canvas id="weekday-chart" aria-label="Requests by day of week"></canvas></div>
+  {% endcall %}
+</div>
+
+<section class="card">
+  <div class="card-head"><div><h2>Busiest periods</h2><p>The top 10 minutes, hours and days, ranked by requests.</p></div>
+    <div class="seg" data-seg="peaks"><button data-v="minute">Minute</button><button data-v="hour" class="on">Hour</button><button data-v="day">Day</button></div></div>
+  <div class="card-body" id="peaks"><div class="loading">Loading…</div></div>
+  <div class="card-foot">Source: <code>traffic_peaks</code></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/traffic.js') }}"></script>{% endblock %}
