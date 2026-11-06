@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% set FIELD_NOTES = {
+  "host": "who made the request: a hostname, or an IP address when no name was found",
+  "ts": "when, as a full timestamp with the server's offset",
+  "log_date": "the day in server time; the parsed data is stored in one folder per day",
+  "log_hour": "the hour of day, 0-23, in server time",
+  "method": "what kind of request (GET, POST, HEAD …)",
+  "resource": "the page or file asked for, without any ?query part",
+  "protocol": "HTTP version; empty for very old-style requests",
+  "status": "the server's answer code",
+  "status_class": "the code's family: 2xx success, 3xx redirect, 4xx client error, 5xx server error",
+  "bytes": "size of the answer; 0 when the log shows '-'",
+  "bytes_missing": "true when the log shows '-' instead of a size",
+  "is_error": "true when status is 400 or higher",
+  "resource_type": "file extension (gif, html …), or 'directory' / 'none'",
+} %}
+{% set REASONS = {
+  "NO_MATCH": "The line is not in Common Log Format at all (for example the cut-off last line of the July file).",
+  "BAD_TIMESTAMP": "The [timestamp] is not a real date or time.",
+  "BAD_STATUS": "The status is three digits but outside 100-599.",
+  "BAD_REQUEST": "The quoted request has no method and resource (binary junk, status 400).",
+} %}
+{% block content %}
+{{ page_head(stage) }}
+
+<div class="grid g4" id="kpis"><div class="loading">Loading the quality report…</div></div>
+
+<section class="card" style="margin-bottom:16px">
+  <div class="card-head"><div><h2>One line, before and after</h2>
+    <p>The first line of the real sample (<code>data/sample/nasa_sample.log</code>), run through the project's own parser just now.</p></div></div>
+  <div class="card-body">
+    {% if example %}
+      <div class="label" style="margin-bottom:6px">Before: raw text</div>
+      <pre class="code">{{ example.line }}</pre>
+      <div class="label" style="margin:16px 0 6px">After: 13 typed fields</div>
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Field</th><th>Value</th><th>Meaning</th></tr></thead>
+        <tbody>{% for k, v in example.fields %}
+          <tr><td class="mono">{{ k }}</td><td class="mono">{{ v if v is not none else "null" }}</td><td class="muted">{{ FIELD_NOTES[k] }}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+    {% else %}<div class="state">The sample file is not available here.</div>{% endif %}
+  </div>
+  <div class="card-foot">Parser: <code>loganalysis.parsing.parser.parse_line</code>; Spark uses the same regular expression through <code>regexp_extract</code></div>
+</section>
+
+<div class="grid g2">
+  {% call card("Parsed vs rejected", "Every line ends up in exactly one of the two.", "quality_report", "split") %}
+    <div class="loading">Loading…</div>
+  {% endcall %}
+  {% call card("Quality checks", "What the tests and the ETL itself guarantee.", "tests/, quality_report") %}
+    <div style="display:grid;gap:12px" id="checks"><div class="loading">Loading…</div></div>
+  {% endcall %}
+</div>
+<script>window.REASONS = {{ REASONS|tojson }};</script>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/etl.js') }}"></script>{% endblock %}
