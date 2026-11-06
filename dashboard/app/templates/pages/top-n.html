@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, card %}
+{% block content %}
+{% call page_head(stage) %}
+  <span class="label">Rank by</span>
+  <div class="seg" data-seg="by"><button data-v="hits" class="on">Hits</button><button data-v="bytes">Bytes</button></div>
+  <span class="label">Show</span>
+  <div class="seg" data-seg="n"><button data-v="10" class="on">10</button><button data-v="20">20</button></div>
+{% endcall %}
+
+<section class="card" style="margin-bottom:16px">
+  <div class="card-head"><div><h2 id="res-title">Most requested resources</h2>
+    <p id="res-sub">A hit is one request for that page or file.</p></div></div>
+  <div class="card-body"><div class="chart-box tall" id="res-box"><canvas id="res-chart" aria-label="Top resources"></canvas></div></div>
+  <div class="card-foot">Source: <code id="res-source">top_resources_by_hits</code></div>
+</section>
+
+<div class="grid g2">
+  {% call card("Most active hosts", "Computers (hostname or IP address) that made the most requests.", "top_hosts", "hosts") %}
+    <div class="loading">Loading…</div>
+  {% endcall %}
+  {% call card("Requests by file type", "Taken from the file extension. The many rare types are grouped as 'other'.", "resource_type_breakdown") %}
+    <div class="chart-box short" id="types-box"><canvas id="types-chart" aria-label="Requests by file type"></canvas></div>
+    <div id="types-table" style="margin-top:12px"></div>
+  {% endcall %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pages/top-n.js') }}"></script>{% endblock %}
