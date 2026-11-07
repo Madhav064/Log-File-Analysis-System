@@ -142,3 +142,27 @@ When the site was busy.
 - **Most requested resources:** pages and files, longest bar first. Long paths are shortened; hover to see the full path.
 - **Most active hosts:** the computers that made the most requests, and how much data they received.
 - **Requests by file type:** the mix of file types, taken from the file extension (gif, html, jpg …). "directory" means a folder address ending in `/`, and "none" means no extension. The many rare types are grouped as "other".
+
+## 08 · Anomalies {#stage-anomalies}
+
+An **anomaly** is an hour that doesn't look like the hours around it.
+
+- **How an hour is judged:** each hour is compared with *the same hour of day* on the previous 7 days. 09:00 is compared with the last seven mornings at 09:00, because traffic always rises and falls through the day. The comparison gives a **z-score**:
+  - **Spike:** far busier than usual (z above +3).
+  - **Drop:** far quieter than usual (z below −3).
+  - **Gap:** no requests at all.
+  - The settings shown come from `config/pipeline.yaml`.
+- **What was flagged:** how many hours of each kind. "Error rate" spikes are often small in real terms: when errors are normally very rare, a few extra already look unusual.
+- **Requests per hour, with flagged hours:** the hourly line with ▲ spikes and ▼ drops marked, and the gaps shaded. Hover a marker to see its z-score and the usual value. Use the date boxes to zoom in.
+- **Every flagged hour:** the full list. Filter it by metric (requests or error rate) and by kind. "Usual (mean)" and "Spread (std)" are the **baseline** the hour was compared with. Gap rows say "no data" because there was nothing to compare.
+
+### The two holes in the data {#gaps}
+
+The logs have two stretches with no requests at all. They look the same on a chart but have different causes, and the dashboard labels them differently:
+
+| Hole | When (server time) | Cause | Shown as |
+|---|---|---|---|
+| **No log data** | 28 Jul ~14:00 → 31 Jul 23:00 | The July log file simply stops on 28 July, and the August file starts on 1 August. The hours in between are in neither file. They are **missing from the data**, not a quiet server. | grey band |
+| **Server outage** | 1 Aug ~15:00 → 3 Aug 03:00 | Inside the August file, the server logged nothing: it had been shut down (a hurricane hit Florida). | red band |
+
+The anomaly job leaves both out of every baseline, so the following week is still compared fairly.
