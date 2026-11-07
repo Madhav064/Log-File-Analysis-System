@@ -189,6 +189,14 @@ This downloads the dataset, loads it into HDFS, runs the Spark ETL and analytics
 
 Visit **http://localhost:5000** 🎉
 
+The dashboard only reads the exported files in `data/serving/`, so it can also run on its own, without the cluster:
+
+```bash
+docker compose -f infra/docker-compose.yml --profile lite up -d dashboard
+```
+
+New to the dashboard? The **Guide** in its sidebar ([`docs/dashboard-guide.md`](docs/dashboard-guide.md)) explains every page, chart and term in plain words.
+
 ### Cluster web UIs
 
 | Service | URL |
