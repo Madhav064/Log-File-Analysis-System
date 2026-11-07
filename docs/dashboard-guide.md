@@ -166,3 +166,20 @@ The logs have two stretches with no requests at all. They look the same on a cha
 | **Server outage** | 1 Aug ~15:00 → 3 Aug 03:00 | Inside the August file, the server logged nothing: it had been shut down (a hurricane hit Florida). | red band |
 
 The anomaly job leaves both out of every baseline, so the following week is still compared fairly.
+
+## 09 · Engine comparison {#stage-engines}
+
+The project computes three results twice, once with **Spark** and once with **Hadoop MapReduce**, and checks that they agree. The three results are requests per status code, requests per hour, and the top 20 resources.
+
+- **The three cards:** for each result, the number of rows each engine produced, and **results match** when every key and every count is identical.
+- **Spark / Hadoop MapReduce:** how each engine works, in one paragraph each. Spark keeps data **in memory**. MapReduce writes to disk between its steps (map → shuffle → reduce). Both use the same parser.
+- **How long each job took:** the time each engine needed for each job, start-up included, as the middle value of several runs. Shorter bars are faster.
+- **Benchmark results:** the same numbers as a table. "Ratio" says how many times longer MapReduce took than Spark.
+
+## 10 · Export & API {#stage-export}
+
+How the results reach this page.
+
+- **The three steps:** Spark's tables are stored as **Parquet** in HDFS, which a browser can't read. The export job copies each small table into a **JSON** file in `data/serving/`. The **API** reads only those files, so the dashboard keeps working when the cluster is switched off.
+- **Exported files:** every file of the last export, with its number of rows and its columns. "Not exported" means that table did not exist when the export ran.
+- **API endpoints:** every address the dashboard asks for data. Click one to see its real answer on the right. A wrong parameter gives an error with code 400. A missing file gives code 503 and the command to run.
