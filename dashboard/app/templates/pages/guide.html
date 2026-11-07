@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="crumbs label"><span>Help</span><span>Guide</span></div>
+<article class="card guide"><div class="card-body">{{ html|safe }}</div></article>
+<style>
+  .guide .card-body { max-width: 860px; padding: 24px 32px; font-size: 15px; line-height: 24px; }
+  .guide h1 { margin-bottom: 12px; } .guide h2 { margin: 32px 0 8px; font-size: 20px; line-height: 28px;
+    padding-top: 16px; border-top: 1px solid var(--border); scroll-margin-top: 120px; }
+  .guide h3 { margin: 20px 0 6px; font-size: 15px; scroll-margin-top: 120px; }
+  .guide p, .guide ul, .guide ol { margin: 0 0 12px; } .guide li { margin-bottom: 4px; }
+  .guide table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 14px; }
+  .guide th, .guide td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .guide th { background: var(--surface-2); font-weight: 600; }
+  .guide code { background: var(--surface-2); padding: 1px 4px; border-radius: 3px; }
+  .guide pre { background: var(--surface-2); padding: 12px; border-radius: var(--radius); overflow-x: auto; }
+  .guide blockquote { margin: 0 0 12px; padding: 8px 14px; border-left: 3px solid var(--accent); background: var(--surface-2); }
+</style>
+{% endblock %}
