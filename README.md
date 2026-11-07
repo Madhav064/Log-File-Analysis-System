@@ -266,14 +266,21 @@ All tunable settings live in [`config/pipeline.yaml`](config/pipeline.yaml):
 
 <!-- Screenshots: add images to docs/images/ and reference them here. -->
 
-| Page | What you'll find |
-|---|---|
-| **🏠 Overview** | KPI cards (total requests, unique hosts, bandwidth, error rate, peak hour, date range), daily traffic trend, status-class distribution |
-| **❗ Errors** | Status code breakdown, hourly 4xx / 5xx error-rate timeline, top broken links (404) and top error-producing hosts |
-| **📈 Traffic** | Hourly / daily traffic with date-range filter, hour-of-day and day-of-week profiles, ranked peak periods |
-| **🏆 Top N** | Most requested resources (by hits or bytes), most active hosts, resource-type breakdown, adjustable N |
-| **🚨 Anomalies** | Traffic timeline with spikes, drops and outages highlighted, plus a detailed anomaly table |
-| **🔧 Pipeline** | Data-quality report (parsed vs rejected lines, rejection reasons) and Spark vs MapReduce runtime comparison |
+The pages follow the pipeline in order (sidebar 01–10), and a stepper along the top shows every stage. Each page ends with a **Stage details** panel: its input and output paths, the job that produced it with its last runtime, and the schema of every table it shows. Light and dark mode follow the system setting, and a toggle in the top bar overrides it.
+
+| # | Page | What you'll find |
+|---|---|---|
+| 01 | **Overview** | KPI cards (requests, unique hosts, data served, error rate, busiest hour, date range), daily traffic with the data gap and outage marked, status-class split, findings, pipeline-at-a-glance |
+| 02 | **Architecture** | Data-flow diagram from source to dashboard, technology stack, cluster services and their web UIs |
+| 03 | **Ingestion (HDFS)** | Each raw file with its line count, size and verified SHA-256; HDFS blocks, replication and `fsck` health |
+| 04 | **Parsing & ETL** | A real log line before and after parsing, parsed vs rejected lines with reasons, data-quality checks |
+| 05 | **Errors** | Status code breakdown, 4xx / 5xx error rate over time, top broken links (404) and top error-producing hosts |
+| 06 | **Traffic** | Hourly / daily traffic with a date-range filter, hour-of-day and day-of-week profiles, ranked peak periods |
+| 07 | **Top N** | Most requested resources (by hits or bytes), most active hosts, file-type breakdown, adjustable N |
+| 08 | **Anomalies** | The z-score method, counts by kind, hourly traffic with spikes, drops and gaps marked, the full list of flagged hours |
+| 09 | **Engine comparison** | Spark vs MapReduce: do the results match, how each engine works, runtime benchmark |
+| 10 | **Export & API** | How results reach the dashboard, the exported files, and a live explorer for every API endpoint |
+| ? | **Guide** | The plain-language guide ([`docs/dashboard-guide.md`](docs/dashboard-guide.md)) |
 
 ### REST API
 
@@ -295,7 +302,10 @@ The dashboard is backed by a JSON API that can also be used directly:
 | `GET /api/anomalies?metric=requests&kind=spike` | Detected anomalies |
 | `GET /api/pipeline/quality` | Data-quality report |
 | `GET /api/pipeline/benchmark` | Spark vs MapReduce benchmark |
-| `GET /api/health` | Service and data availability |
+| `GET /api/pipeline/ingestion` | Files stored in HDFS: sizes, checksums, blocks, `fsck` status |
+| `GET /api/pipeline/runs` | Runtime and result of every pipeline job |
+| `GET /api/meta/stages` | The dashboard's stages with their paths and table schemas |
+| `GET /api/health` | Which exported files exist and when they were written |
 
 ---
 
