@@ -183,3 +183,54 @@ How the results reach this page.
 - **The three steps:** Spark's tables are stored as **Parquet** in HDFS, which a browser can't read. The export job copies each small table into a **JSON** file in `data/serving/`. The **API** reads only those files, so the dashboard keeps working when the cluster is switched off.
 - **Exported files:** every file of the last export, with its number of rows and its columns. "Not exported" means that table did not exist when the export ran.
 - **API endpoints:** every address the dashboard asks for data. Click one to see its real answer on the right. A wrong parameter gives an error with code 400. A missing file gives code 503 and the command to run.
+
+## Common questions {#faq}
+
+**Why does the Date range say 62 days, but only 58 have traffic?**
+1 July to 31 August is 62 calendar days. On 4 of them nothing was logged at all: 29, 30 and 31 July have no log data, and 2 August fell inside the server outage. The partly empty days (28 July, 1 and 3 August) still have some traffic, so they count.
+
+**What does "results match" mean on the Engine comparison page?**
+Spark and MapReduce produced exactly the same rows with exactly the same counts. Two very different engines agreeing is strong evidence that both are right.
+
+**Why are some lines "rejected"?**
+A handful of lines are broken: one is cut off mid-line at the end of the July file, and a few contain binary junk. They are kept aside, with the reason, instead of being guessed at.
+
+**A chart says "No data yet". What now?**
+The pipeline hasn't been run, or its export hasn't. Run `python scripts/pipeline.py all --env cluster` (or just `export` if the rest already ran), then reload the page.
+
+**Are any numbers typed in by hand?**
+No. Every number comes from the files the pipeline exported. The example line on the Parsing page is the first real line of the logs, parsed live by the project's own parser.
+
+## Glossary {#glossary}
+
+| Word | Meaning |
+|---|---|
+| **API** | A set of web addresses that return data instead of pages. The charts get their numbers from it. |
+| **Baseline** | What an hour is compared with: the same hour of day on the previous 7 days. |
+| **Block** | A piece of a file in HDFS, at most 128 MB. Big files are split into blocks so they can be read in parallel. |
+| **Bytes** | The size of an answer. 1 MB is a million bytes. |
+| **Checksum (SHA-256)** | A long fingerprint computed from a file's contents. If even one byte changes, the fingerprint changes. |
+| **Container** | A small, isolated computer-within-the-computer that runs one program of the cluster. |
+| **Drop** | An hour far quieter than its baseline (z below −3). |
+| **Error** | A request with status code 400 or higher. |
+| **Error rate** | Errors divided by all requests in the same hour or day. |
+| **ETL** | Extract, transform, load: reading raw data, cleaning it into columns, and saving it. |
+| **fsck** | HDFS's health check. HEALTHY means no block is missing or damaged. |
+| **Gap** | An hour with no requests at all. |
+| **HDFS** | Hadoop Distributed File System: storage spread over the cluster, holding files as blocks. |
+| **Hit** | One request for a page or file. |
+| **Host** | The computer that made a request: a name like `piweba3y.prodigy.com`, or a number (IP address) when no name was known. |
+| **JSON** | A simple text format for data, which web pages can read. |
+| **MapReduce** | Hadoop's classic way to process big data: *map* each line to a key, *shuffle* so equal keys meet, *reduce* each key to a result. |
+| **Parquet** | A compact file format that stores data by column. Fast for Spark, but not readable by a browser. |
+| **Partition** | A sub-folder holding one slice of the data, for example one day or one month. |
+| **Pipeline** | The fixed series of steps the data goes through. |
+| **Replication** | How many copies of each block HDFS keeps (1 in this lite setup). |
+| **Request** | One visit to one page or file: one line in the log. |
+| **Resource** | The page or file a request asked for, such as `/images/NASA-logosmall.gif`. |
+| **Spark** | A big-data engine that processes data in memory. It does the ETL and all analytics here. |
+| **Spike** | An hour far busier than its baseline (z above +3). |
+| **Status code** | The server's three-digit answer: 2xx success, 3xx redirect, 4xx client error (404 = not found), 5xx server error. |
+| **Unique hosts** | How many different computers made requests. |
+| **YARN** | Hadoop's scheduler: it hands out memory and processors to MapReduce jobs. |
+| **z-score** | How far a value is from its baseline, measured in standard deviations (the usual spread). 0 is normal, and +3 or −3 is very unusual. |
