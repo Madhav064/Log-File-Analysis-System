@@ -1,0 +1,3 @@
+# Build context of dashboard/Dockerfile (the repo root): it only needs its requirements file.
+*
+!requirements/dashboard.txt
