@@ -14,7 +14,7 @@ from loganalysis.etl import parse_logs  # noqa: E402
 from loganalysis.export import to_serving  # noqa: E402
 from loganalysis.export.serving import MANIFEST  # noqa: E402
 
-ISO_WITH_OFFSET = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d-04:00$")
+ISO_WITH_OFFSET = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d$")
 
 
 @pytest.fixture(scope="module")
@@ -57,10 +57,12 @@ def test_every_file_has_the_contract_columns_and_iso_timestamps(serving, name):
         values = [row[i] for row in data["rows"] if row[i] is not None]
         if typ == "timestamp":
             assert all(ISO_WITH_OFFSET.match(v) for v in values), (name, col, values[:3])
+            # log times are in the server's zone, UTC-04:00 for the whole dataset (run_at is today's clock)
+            assert all(v.endswith("-04:00") for v in values if v.startswith("1995")), (name, col, values[:3])
 
 
 def test_hour_buckets_keep_server_local_time(serving):
-    first = load(serving, "traffic_hourly")["rows"][0][0]
+    first = min(row[0] for row in load(serving, "traffic_hourly")["rows"])  # Spark writes rows in no set order
     assert first == "1995-07-01T00:00:00-04:00"   # the sample starts at 01/Jul/1995:00:00:01 -0400
 
 
