@@ -265,6 +265,15 @@ There is one file per analytics table, `data/serving/<table_name>.json`, shaped 
   "tables": { "status_counts": {"rows": 30, "file": "status_counts.json"}, "...": {} } }
 ```
 
+Next to the 16 tables, the export copies two small **run reports** (defined in `contracts.REPORTS`, written as JSON to `paths.reports` by plain Python steps):
+
+| Report | Written by | Holds |
+|--------|-----------|-------|
+| `ingestion_report` | `ingestion/hdfs_loader.py` | one row per raw file: HDFS path, local and HDFS bytes, lines, SHA-256, checksum verified, replication, block size, blocks, `fsck` status, loaded_at |
+| `pipeline_runs` | `scripts/pipeline.py` (+ the export adds its own runtime) | one row per job of the latest run of each stage: stage, job, env, started_at, duration_sec, status |
+
+A table or report that does not exist is listed in the manifest with `"missing": true` (e.g. `engine_benchmark` before `compare_engines.py` has run).
+
 ### 6.6 REST API (Flask)
 
 | Endpoint | Query params | Returns |
@@ -283,6 +292,9 @@ There is one file per analytics table, `data/serving/<table_name>.json`, shaped 
 | `GET /api/anomalies` | `metric`, `kind` | anomalies |
 | `GET /api/pipeline/quality` | – | quality_report |
 | `GET /api/pipeline/benchmark` | – | engine_benchmark |
+| `GET /api/pipeline/ingestion` | – | ingestion_report |
+| `GET /api/pipeline/runs` | – | pipeline_runs |
+| `GET /api/meta/stages` | – | the dashboard's ten stages with paths, jobs and table schemas |
 | `GET /api/health` | – | manifest info, whether the data files exist |
 
 Errors come back as JSON `{"error": "...", "code": 400}`. Bad params return 400. A missing data file returns 503 with a hint to run the export.
@@ -448,6 +460,8 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 | Top N | Top resources (hits / bytes toggle), top hosts, a resource-type pie, and an N selector |
 | Anomalies | Traffic line with anomaly points highlighted (spike / drop / gap colours), plus an anomaly table |
 | Pipeline | Data-quality numbers (parsed vs rejected, reasons), and a Spark vs MapReduce runtime bar chart with a "results match" badge |
+
+As built (Track C), the pages follow the pipeline one stage per page, numbered 01–10 in a sidebar with a stepper along the top: Overview, Architecture, Ingestion (HDFS), Parsing & ETL, Errors, Traffic, Top N, Anomalies, Engine comparison, Export & API, plus a Guide page (`docs/dashboard-guide.md`). The "Pipeline" page above is split into Ingestion, Parsing & ETL, Engine comparison and Export & API. Every page ends with a "Stage details" panel (input, output, producing job and its last runtime, table schemas). Light and dark mode follow the system setting, with a toggle.
 
 - Use one small JS helper (`static/js/api.js`) for fetching and error display, and one script per page. Chart.js is loaded from a pinned CDN version or vendored into `static/`.
 - Show a clear empty state when the API returns 503 (no data yet).
