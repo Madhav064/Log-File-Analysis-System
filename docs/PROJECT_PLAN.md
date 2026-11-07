@@ -174,9 +174,8 @@ Log-File-Analysis-System/
 │   │   ├── views/                # blueprint: HTML pages
 │   │   ├── templates/            # Jinja: base.html + one per page
 │   │   └── static/{js,css}/      # Chart.js page scripts, styles
-│   ├── mock_data/                # fake serving JSON for building the UI before the pipeline is ready
 │   ├── Dockerfile
-│   └── tests/
+│   └── tests/                    # API and page tests; tests/data/ = the real sample's export
 ├── tests/
 │   ├── fixtures/                 # sample + edge-case log lines
 │   ├── unit/                     # parser, pure Spark transforms, mappers/reducers
@@ -427,14 +426,14 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 2. Format timestamps as ISO-8601 strings with the offset.
 3. Write `manifest.json` last, so a half-finished export is never mistaken for a complete one.
 
-**Done when:** the dashboard runs on real exported files with no code changes compared with the mock files.
+**Done when:** the dashboard runs on the real exported files (no mock data is used anywhere; decided while building Track C).
 
 ---
 
 ### M8 — Dashboard (Flask + Chart.js)
 
 **M8a Backend (Flask)**
-- App factory `create_app(config)`, and config chosen by an env var (`DATA_DIR` points to `mock_data/` or `data/serving/`).
+- App factory `create_app(config)`, and config chosen by an env var (`DATA_DIR`, default `data/serving/`).
 - `services/repository.py` is the only module that reads files. It loads JSON once and caches it, and offers typed accessors such as `get_traffic(granularity, from, to)`. Filtering by date range happens here, in memory.
 - `api/` blueprint implements §6.6 with validation of query params.
 - `views/` blueprint serves the HTML pages.
@@ -453,7 +452,7 @@ Four independent jobs. Each one reads `/logs/parsed/` and writes its own tables 
 - Use one small JS helper (`static/js/api.js`) for fetching and error display, and one script per page. Chart.js is loaded from a pinned CDN version or vendored into `static/`.
 - Show a clear empty state when the API returns 503 (no data yet).
 
-**Done when:** every page renders from mock data first and then from real data, with no console errors, and the API tests pass.
+**Done when:** every page renders from the real exported data with no console errors, shows an empty state (not invented numbers) before any export, and the API tests pass.
 
 ---
 
@@ -499,7 +498,7 @@ python scripts/pipeline.py export
 | Spark transforms | pure functions on tiny hand-made DataFrames (local SparkSession fixture) | pytest + pyspark |
 | ETL → analytics | integration run on `data/sample/`, then check the output contracts | pytest |
 | MapReduce | `mapper | sort | reducer` on fixtures; Spark vs MR parity | pytest + subprocess |
-| API | Flask test client against `mock_data/` | pytest |
+| API | Flask test client against the export of the real sample (`dashboard/tests/data/`) | pytest |
 | CI | ruff lint + all of the above except cluster runs (needs Java 17 on the runner) | GitHub Actions |
 
 ### M12 — Documentation and demo
@@ -515,7 +514,7 @@ python scripts/pipeline.py export
 | Phase | Days | Goal | Exit check |
 |-------|------|------|-----------|
 | 0. Kickoff | Day 1 | Review this plan, freeze the §6 contracts, pick tracks, set up the repo (task S1–S4) | Contracts merged to `main`; every member has a track |
-| 1. Foundations | Days 2–4 | Cluster up (A), parser + common utilities (B), Flask skeleton on mock data (C) | Cluster smoke test passes; parser tests green; API serves mock data |
+| 1. Foundations | Days 2–4 | Cluster up (A), parser + common utilities (B), Flask skeleton (C) | Cluster smoke test passes; parser tests green; API answers with an empty state |
 | 2. Core build | Days 5–8 | Ingestion + MR jobs (A), ETL + 4 analytics jobs (B), all pages + export (C) | Each module "done when" met on the **sample** locally |
 | 3. Integration | Days 9–10 | Full data on the cluster, end-to-end through the runner, dashboard on real data | `pipeline.py all` works on one laptop |
 | 4. Hardening | Days 11–12 | Tune anomalies, Spark vs MR comparison, test the lite profile on the lowest-RAM laptop, fix bugs | It runs on **all three** laptops |
@@ -523,7 +522,7 @@ python scripts/pipeline.py export
 
 ### How the three of you stay unblocked
 
-- **Track C never waits for the pipeline.** It builds against `dashboard/mock_data/`, which follows the contract.
+- **Track C never waits for the cluster.** It builds against the export of the real sample (`--env local`), which follows the contract. (The original plan used fake mock data; the team chose real data only.)
 - **Track B never waits for Docker.** It develops with local PySpark on `data/sample/` (`--env local`).
 - **Track A never waits for the Spark jobs.** It tests the cluster with the bundled examples, and the MR jobs only need the parser (M3, done by Day 3).
 - The only hard dependency is **M3 (parser) → M4, M6**. That is why M3 is scheduled first.
@@ -548,7 +547,7 @@ python scripts/pipeline.py export
 | Python missing on NodeManagers → Hadoop Streaming fails | Medium | Custom image (M1 step 3); smoke-test a Python mapper on Day 3 |
 | Local PySpark version ≠ cluster Spark version | Medium | Pin both from VERSIONS.md in `requirements/jobs.txt` |
 | Spark and MR disagree on counts | Medium | Shared parser + parity test; explain any remaining difference |
-| Contract drift between tracks | Medium | Frozen contracts, mock data generated from the contract, integration tests |
+| Contract drift between tracks | Medium | Frozen contracts in `contracts.py`, the export and API tests built from them, integration tests |
 | Running out of time | Medium | §11 lists what to cut first |
 
 ## 11. Scope priority (what to cut if time runs out)
