@@ -155,6 +155,24 @@ services:
       nodemanager: *healthy
       spark-master: *healthy
 
+  # The dashboard (Flask). It reads only data/serving/ (written by `pipeline.py export`), so it also runs
+  # on its own: docker compose -f infra/docker-compose.yml --profile lite up -d dashboard
+  dashboard:
+    image: loganalysis/dashboard:local
+    build: {context: .., dockerfile: dashboard/Dockerfile}
+    restart: unless-stopped
+    hostname: dashboard
+    profiles: [lite, full]
+    mem_limit: 256m
+    ports: ["5000:5000"]
+    volumes: ["..:/opt/project:ro"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/meta/stages')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
 volumes:
   nn-data:
   dn-data:
