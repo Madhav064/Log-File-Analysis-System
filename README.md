@@ -58,7 +58,7 @@ The system is demonstrated on the public **[NASA-HTTP web server logs](https://i
 | 🏆 | **Top-N insights** | Most requested resources (by hits and by bytes), most active hosts, breakdown by resource type |
 | 🚨 | **Anomaly detection** | Seasonal z-score that compares each hour with the same hour over the previous 7 days, plus gap detection that flags outages |
 | ⚖️ | **Spark vs MapReduce** | The same analyses written as Hadoop Streaming MapReduce jobs; results checked against each other and runtimes benchmarked |
-| 🖥️ | **Interactive dashboard** | Six-page web dashboard with KPIs, time-series, filters and drill-downs, served by a documented REST API |
+| 🖥️ | **Interactive dashboard** | Ten-page web dashboard that follows the pipeline stage by stage, with KPIs, time-series, filters, light and dark mode and a plain-language guide, served by a documented REST API |
 | 🐳 | **One-command cluster** | Complete Hadoop + Spark cluster in Docker, with `lite` (≈8 GB RAM) and `full` profiles |
 | 🔁 | **Reproducible pipeline** | One CLI runs every stage end to end, or any single stage, against a local sample or the full cluster |
 
