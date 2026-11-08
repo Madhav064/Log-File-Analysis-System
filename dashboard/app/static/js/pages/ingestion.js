@@ -38,7 +38,7 @@
   $("#storage").innerHTML = `
     <div class="grid g4" style="margin:0 0 16px">
       <div><div class="label">Stored</div><div class="num" style="font-size:18px">${fmt.bytes(total)}</div><div class="mono faint">${fmt.int(total)} B</div></div>
-      <div><div class="label">Blocks</div><div class="num" style="font-size:18px">${blocks}</div><div class="mono faint">${fmt.bytes(files[0].block_size)} each at most</div></div>
+      <div><div class="label">Blocks</div><div class="num" style="font-size:18px">${blocks}</div><div class="mono faint">${fmt.mib(files[0].block_size)} each at most</div></div>
       <div><div class="label">Replication</div><div class="num" style="font-size:18px">${files[0].replication}×</div><div class="mono faint">copies of each block</div></div>
       <div><div class="label">fsck</div><div style="margin-top:4px"><span class="chip ${status === "HEALTHY" ? "ok" : "bad"}">${esc(status)}</span></div>
         <div class="mono faint">loaded ${fmt.ts(files[0].loaded_at)}</div></div>

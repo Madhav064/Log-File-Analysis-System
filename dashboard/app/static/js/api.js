@@ -21,6 +21,7 @@ const fmt = {
     while (n >= 1000 && i < units.length - 1) { n /= 1000; i++; }
     return (i ? n.toFixed(n >= 100 ? 0 : n >= 10 ? 1 : 2) : n) + " " + units[i];
   },
+  mib: (v) => (v == null ? "–" : fmt.int(Math.round(v / 1048576)) + " MiB"),   // HDFS block sizes are powers of 2
   secs(v) {
     if (v == null) return "â€“";
     const s = Number(v);
