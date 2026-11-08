@@ -187,13 +187,24 @@ This downloads the dataset, loads it into HDFS, runs the Spark ETL and analytics
 
 ### 4. Open the dashboard
 
-Visit **http://localhost:5000** 🎉
+**To open it, follow these steps:**
 
-The dashboard only reads the exported files in `data/serving/`, so it can also run on its own, without the cluster:
+1. **Start Docker Desktop** and wait until it says it is running.
+2. **Open a terminal** in the project folder (`Log-File-Analysis-System`) and run:
 
-```bash
-docker compose -f infra/docker-compose.yml --profile lite up -d dashboard
-```
+   ```bash
+   docker compose -f infra/docker-compose.yml --profile lite up -d dashboard
+   ```
+
+   The first time, Docker builds a small image and this takes about a minute. After that it starts in seconds.
+3. **Open your browser** and go to **http://localhost:5000** 🎉
+4. **To stop it** when you are done:
+
+   ```bash
+   docker compose -f infra/docker-compose.yml stop dashboard
+   ```
+
+> **Do you see "No data yet"?** The dashboard only shows results the pipeline has exported to `data/serving/`. If that folder is empty (for example on a fresh clone), run the pipeline once (step 3 above, about 45 minutes), then reload the page. You don't need to keep the cluster running afterwards: the dashboard only reads those exported files.
 
 New to the dashboard? The **Guide** in its sidebar ([`docs/dashboard-guide.md`](docs/dashboard-guide.md)) explains every page, chart and term in plain words.
 
