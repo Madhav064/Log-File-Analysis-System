@@ -40,7 +40,7 @@ New pipeline outputs (so the Ingestion page and runtimes are real, not typed in)
 | Export | 18 files (16 tables + 2 reports), none missing |
 | Summary | 65,524,314,915 bytes (65.5 GB), error rate 0.613%, 62 calendar days / **58 with traffic** (29, 30, 31 Jul and 2 Aug have none), 1,369 hours, peaks 13 Jul (day 134,203, hour 09:00 14,926, minute 09:49 405), busiest hour of day 15:00 |
 | Anomalies | 268 = 119 gap + 34/23 request spike/drop + 88/4 error-rate spike/drop; gap runs 28 Jul 14:00–31 Jul 23:00 (82 h, labelled *no log data*) and 1 Aug 15:00–3 Aug 03:00 (37 h, *server outage*) |
-| Tests | Windows (no Spark): 134 passed, 8 Spark skipped; container: 130 + the new export tests passed (Spark included); dashboard: 68 passed; `ruff` clean |
+| Tests | Windows (no Spark): 134 passed, 8 Spark skipped; client container: 132 passed (Spark and the export included; the dashboard tests skip there, no Flask); dashboard: 68 passed; `ruff` clean |
 | Browser | All 11 pages in light and dark (headless Chrome): no console errors |
 
 ## Fixed or decided while building
