@@ -73,9 +73,9 @@ Status values: `todo` · `in progress` · `review` · `done`
 | C6 | Top N + Anomalies + the Pipeline page split into Ingestion, Parsing & ETL, Engine comparison, Export & API; Guide page | M8b | C4 | 1d | | review |
 | C7 | Export job: analytics Parquet → serving JSON + manifest (size guard, ISO timestamps); ingestion and runtime reports | M7 | B3, B5 | 1d | | review |
 | C8 | Dashboard Dockerfile **and** its `dashboard` service in `infra/docker-compose.yml` | M8 / M1 | C2 | 0.5d | | review |
-| C9 | README screenshots and a check that the README matches what was built, `docs/demo-script.md`, `docs/dashboard-guide.md`; collect each owner's module notes (the README text itself is already written) | M12 | all | 0.5d | | in progress |
+| C9 | README screenshots and a check that the README matches what was built, `docs/demo-script.md`, `docs/dashboard-guide.md`; collect each owner's module notes (the README text itself is already written) | M12 | all | 0.5d | | review |
 
-**Track C total ≈ 8 days** · Branch `feat/track-c` (local)
+**Track C total ≈ 8 days** · Branch `feat/track-c` (local); handoff in [`handoffs/2026-11-12-track-c-build.md`](../handoffs/2026-11-12-track-c-build.md)
 
 ---
 
@@ -83,9 +83,9 @@ Status values: `todo` · `in progress` · `review` · `done`
 
 | ID | Task | Lead | Status |
 |----|------|------|--------|
-| I1 | First full end-to-end run on the cluster (`pipeline.py all`) on one laptop | A | in progress: ingest → compare verified on Windows (3 Nov); export waits for C7 |
+| I1 | First full end-to-end run on the cluster (`pipeline.py all`) on one laptop | A | done: every stage incl. the benchmark and export on Windows, 12 Nov (2,669 s) |
 | I2 | Fix contract mismatches found in I1 | owner of the failing module | todo |
-| I3 | Dashboard on real exported data; check every chart against the raw numbers | C | todo |
+| I3 | Dashboard on real exported data; check every chart against the raw numbers | C | done: totals, peaks, anomalies, gap runs and engine results match the Track B figures (12 Nov) |
 | I4 | Validate the anomaly output (do both data holes show as gaps: 28 Jul 14:00 to 31 Jul 23:00 and the 1 to 3 Aug hurricane outage?) and tune thresholds | B | done: both gap runs found; error_rate noise noted in the Track B handoff |
 | I5 | Run the `lite` profile on all three laptops | A | todo |
 | I6 | Demo rehearsal ×2 (follow `demo-script.md`, time it) | C | todo |
