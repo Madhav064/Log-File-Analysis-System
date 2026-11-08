@@ -105,10 +105,11 @@ def main(argv=None):
                 task = f" (task {BUILT_BY[module]})" if module in BUILT_BY else ""
                 sys.exit(f"\n[{stage}] FAILED: {module} does not exist yet{task}")
             print(f"\n[{stage}] {time.strftime('%H:%M:%S')} start: {' '.join(cmd[1:])}", flush=True)
-            t0 = time.time()
+            t0, m0 = time.time(), time.monotonic()  # durations from the monotonic clock: the VM clock can step
             failed = subprocess.run(cmd, cwd=ROOT, env=env).returncode != 0
             # the dashboard shows these runtimes (pipeline_runs report)
-            runs = record_run(runs, stage, job_name(cmd), args.env, t0, time.time() - t0, "failed" if failed else "ok")
+            runs = record_run(runs, stage, job_name(cmd), args.env, t0, time.monotonic() - m0,
+                              "failed" if failed else "ok")
             write_report(cfg, "pipeline_runs", runs)
             if failed:
                 sys.exit(f"\n[{stage}] FAILED after {time.time() - t0:.0f}s; stopping, later stages were not run")

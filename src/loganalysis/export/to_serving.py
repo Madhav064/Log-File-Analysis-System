@@ -85,10 +85,10 @@ def export_reports(cfg, out, export_started, export_seconds):
 
 
 def run(spark, cfg):
-    started, t0 = now_iso(), time.time()
+    started, t0 = now_iso(), time.monotonic()  # monotonic: the VM clock can step back during a run
     out = cfg["paths"]["serving"]
     entries = export_tables(spark, cfg, out)
-    entries.update(export_reports(cfg, out, started, time.time() - t0))
+    entries.update(export_reports(cfg, out, started, time.monotonic() - t0))
     path = write_manifest(out, now_iso(), cfg, entries)
     log.info("manifest written to %s (%d files)", path, sum(not e["missing"] for e in entries.values()))
 
