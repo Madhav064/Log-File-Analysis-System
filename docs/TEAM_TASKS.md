@@ -65,17 +65,17 @@ Status values: `todo` · `in progress` · `review` · `done`
 
 | ID | Task | Module | Depends on | Est. | Owner | Status |
 |----|------|--------|-----------|------|-------|--------|
-| C1 | `dashboard/mock_data/`: realistic fake JSON for **every** table in §6.4, in the §6.5 format, plus `manifest.json` | M8 | S1 | 0.5d | | todo |
-| C2 | Flask skeleton: app factory, config (`DATA_DIR`), blueprints, `services/repository.py` with caching + date filtering | M8a | C1 | 1d | | todo |
-| C3 | All REST endpoints from §6.6 + param validation + error format + API tests | M8a / M11 | C2 | 1.5d | | todo |
-| C4 | Frontend base: `base.html` layout + navigation, `api.js` helper, empty/error states, Overview page | M8b | C3 | 1d | | todo |
-| C5 | Errors page + Traffic page (granularity toggle, date range) | M8b | C4 | 1d | | todo |
-| C6 | Top N page + Anomalies page + Pipeline page (quality + benchmark) | M8b | C4 | 1d | | todo |
-| C7 | Export job: analytics Parquet → serving JSON + manifest (size guard, ISO timestamps) | M7 | B3, B5 | 1d | | todo |
-| C8 | Dashboard Dockerfile **and** its `dashboard` service in `infra/docker-compose.yml` | M8 / M1 | C2 | 0.5d | | todo |
-| C9 | README screenshots and a check that the README matches what was built, `docs/demo-script.md`; collect each owner's module notes (the README text itself is already written) | M12 | all | 0.5d | | todo |
+| C1 | ~~`dashboard/mock_data/`~~ **replaced:** no fake data. The API tests use the real pipeline's export of the real sample (`dashboard/tests/data/`, rebuilt by `dashboard/tests/make_test_data.py`) | M8 | S1 | 0.5d | | review |
+| C2 | Flask skeleton: app factory, config (`DATA_DIR`), blueprints, `services/repository.py` with caching + date filtering | M8a | C1 | 1d | | review |
+| C3 | All REST endpoints from §6.6 (+ ingestion, runs, stages) + param validation + error format + API tests | M8a / M11 | C2 | 1.5d | | review |
+| C4 | Frontend base: `base.html` layout + navigation (sidebar, stepper, stage details, light/dark), `api.js` helper, empty/error states, Overview + Architecture | M8b | C3 | 1d | | review |
+| C5 | Errors page + Traffic page (granularity toggle, date range) | M8b | C4 | 1d | | review |
+| C6 | Top N + Anomalies + the Pipeline page split into Ingestion, Parsing & ETL, Engine comparison, Export & API; Guide page | M8b | C4 | 1d | | review |
+| C7 | Export job: analytics Parquet → serving JSON + manifest (size guard, ISO timestamps); ingestion and runtime reports | M7 | B3, B5 | 1d | | review |
+| C8 | Dashboard Dockerfile **and** its `dashboard` service in `infra/docker-compose.yml` | M8 / M1 | C2 | 0.5d | | review |
+| C9 | README screenshots and a check that the README matches what was built, `docs/demo-script.md`, `docs/dashboard-guide.md`; collect each owner's module notes (the README text itself is already written) | M12 | all | 0.5d | | in progress |
 
-**Track C total ≈ 8 days**
+**Track C total ≈ 8 days** · Branch `feat/track-c` (local)
 
 ---
 
