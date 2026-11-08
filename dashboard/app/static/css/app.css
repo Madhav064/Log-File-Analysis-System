@@ -181,10 +181,10 @@ pre.code {
 }
 
 /* notes and states */
-.note { display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 12.5px; line-height: 18px;
+.callout { display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 12.5px; line-height: 18px;
   background: var(--surface-2); border: 1px solid var(--border); }
-.note.gap { border-left: 3px solid var(--text-faint); }
-.note.outage { border-left: 3px solid var(--error); }
+.callout.gap { border-left: 3px solid var(--text-faint); }
+.callout.outage { border-left: 3px solid var(--error); }
 .state {
   display: grid; place-items: center; gap: 6px; min-height: 120px; padding: 24px; text-align: center;
   color: var(--text-muted); background: var(--surface-2); border: 1px dashed var(--border-strong); border-radius: var(--radius);

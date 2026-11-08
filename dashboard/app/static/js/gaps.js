@@ -23,7 +23,7 @@ const Gaps = {
   notes(el, runs) {
     if (!el) return;
     el.innerHTML = runs.map((r) => `
-      <div class="note ${r.cause === "outage" ? "outage" : "gap"}"><div>
+      <div class="callout ${r.cause === "outage" ? "outage" : "gap"}"><div>
         <strong>${Gaps.title[r.cause]}: ${fmt.ts(r.start, false)} → ${fmt.ts(r.end, false)} (${r.hours} h)</strong><br>
         <span class="muted">${Gaps.text[r.cause]}</span></div></div>`).join("");
   },
