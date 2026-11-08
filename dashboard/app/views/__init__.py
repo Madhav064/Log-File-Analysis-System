@@ -72,8 +72,12 @@ def parse_example():
     with open(sample, encoding="utf-8", errors="replace") as f:
         line = f.readline().rstrip("\n")
     record = parse_line(line)
-    return {"line": line, "fields": [(k, v.isoformat() if hasattr(v, "isoformat") else v)
-                                     for k, v in record._asdict().items()]}
+    def show(v):  # as the JSON export writes it: ISO times, lower-case booleans
+        if isinstance(v, bool):
+            return "true" if v else "false"
+        return v.isoformat() if hasattr(v, "isoformat") else v
+
+    return {"line": line, "fields": [(k, show(v)) for k, v in record._asdict().items()]}
 
 
 def render_stage(slug):
