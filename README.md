@@ -264,7 +264,13 @@ All tunable settings live in [`config/pipeline.yaml`](config/pipeline.yaml):
 
 ## 🖥️ Dashboard
 
-<!-- Screenshots: add images to docs/images/ and reference them here. -->
+| Overview (light) | Anomalies (dark) |
+|---|---|
+| ![Overview page, light mode](docs/images/overview-light.png) | ![Anomalies page, dark mode](docs/images/anomalies-dark.png) |
+| **Engine comparison (light)** | **Parsing & ETL (dark)** |
+| ![Engine comparison page, light mode](docs/images/engines-light.png) | ![Parsing and ETL page, dark mode](docs/images/etl-dark.png) |
+
+Screenshots of every page in both modes are in [`docs/images/`](docs/images/), taken on the real full-data run.
 
 The pages follow the pipeline in order (sidebar 01–10), and a stepper along the top shows every stage. Each page ends with a **Stage details** panel: its input and output paths, the job that produced it with its last runtime, and the schema of every table it shows. Light and dark mode follow the system setting, and a toggle in the top bar overrides it.
 
