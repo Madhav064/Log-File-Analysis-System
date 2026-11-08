@@ -19,7 +19,8 @@
     }).join("");
   });
   if (!body) { ["#bench-box", "#bench-table"].forEach((s) => showError($(s), { code: 503, message: "engine_benchmark: not exported; run scripts/compare_engines.py then the export" })); return; }
-  const data = body.data;
+  const order = Object.keys(JOBS);
+  const data = body.data.slice().sort((a, b) => order.indexOf(a.job) - order.indexOf(b.job) || (a.engine === "spark" ? -1 : 1));
   const jobs = Object.keys(JOBS).filter((j) => data.some((r) => r.job === j));
   const time = (job, engine) => (data.find((r) => r.job === job && r.engine === engine) || {}).runtime_sec ?? null;
 
