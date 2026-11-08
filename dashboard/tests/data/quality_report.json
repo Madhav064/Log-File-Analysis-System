@@ -1,0 +1,1 @@
+{"columns":["total_lines","parsed","rejected","reject_pct","rejected_by_reason","min_ts","max_ts","unique_hosts","run_at"],"rows":[[2024,2023,1,0.04940711462450593,{"NO_MATCH":1},"1995-07-01T00:00:01-04:00","1995-07-05T16:22:12-04:00",249,"2026-11-12T06:23:44-05:00"]]}

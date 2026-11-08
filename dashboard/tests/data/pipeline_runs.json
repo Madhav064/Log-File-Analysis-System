@@ -1,0 +1,1 @@
+{"columns":["stage","job","env","started_at","duration_sec","status"],"rows":[["export","loganalysis.export.to_serving","local","2026-11-12T11:24:13+00:00",4.6,"ok"]]}
