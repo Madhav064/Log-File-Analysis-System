@@ -275,11 +275,18 @@ All tunable settings live in [`config/pipeline.yaml`](config/pipeline.yaml):
 
 ## 🖥️ Dashboard
 
-| Overview (light) | Anomalies (dark) |
+| | |
 |---|---|
-| ![Overview page, light mode](docs/images/overview-light.png) | ![Anomalies page, dark mode](docs/images/anomalies-dark.png) |
-| **Engine comparison (light)** | **Parsing & ETL (dark)** |
-| ![Engine comparison page, light mode](docs/images/engines-light.png) | ![Parsing and ETL page, dark mode](docs/images/etl-dark.png) |
+| **01 · Overview** | **02 · Architecture** |
+| ![01 · Overview](docs/images/live-overview.png) | ![02 · Architecture](docs/images/live-architecture.png) |
+| **03 · Ingestion (HDFS)** | **04 · Parsing & ETL** |
+| ![03 · Ingestion (HDFS)](docs/images/live-ingestion.png) | ![04 · Parsing & ETL](docs/images/live-etl.png) |
+| **05 · Errors** | **06 · Traffic** |
+| ![05 · Errors](docs/images/live-errors.png) | ![06 · Traffic](docs/images/live-traffic.png) |
+| **07 · Top N** | **08 · Anomalies** |
+| ![07 · Top N](docs/images/live-top-n.png) | ![08 · Anomalies](docs/images/live-anomalies.png) |
+| **09 · Engine comparison** | **10 · Export & API** |
+| ![09 · Engine comparison](docs/images/live-engines.png) | ![10 · Export & API](docs/images/live-export.png) |
 
 Screenshots of every page in both modes are in [`docs/images/`](docs/images/), taken on the real full-data run.
 
