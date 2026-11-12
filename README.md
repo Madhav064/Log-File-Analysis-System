@@ -4,6 +4,9 @@
 
 **A distributed big-data pipeline that parses web-server logs stored in HDFS to uncover error patterns, traffic peaks, top resources and anomalies, built on Hadoop and Spark and presented through an interactive web dashboard.**
 
+<!-- Replace PROJECT_REPORT_LINK below with the Google Drive link to the project report. -->
+### [Project Report (PDF)](PROJECT_REPORT_LINK)
+
 ![Hadoop](https://img.shields.io/badge/Apache%20Hadoop-HDFS%20%7C%20YARN%20%7C%20MapReduce-66CCFF?style=for-the-badge&logo=apachehadoop&logoColor=black)
 ![Spark](https://img.shields.io/badge/Apache%20Spark-PySpark-E25A1C?style=for-the-badge&logo=apachespark&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
