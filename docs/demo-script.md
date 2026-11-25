@@ -1,6 +1,6 @@
 # Demo script (about 10 minutes)
 
-A walk through the system in pipeline order. Times are targets; rehearse twice (task I6).
+A walk through the system in pipeline order. Times are targets; rehearse twice.
 
 ## Before the demo (not shown)
 

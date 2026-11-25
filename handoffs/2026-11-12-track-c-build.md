@@ -1,7 +1,7 @@
 # Handoff: Track C build (export, dashboard, guide)
 
 **Date:** 2026-11-12 · **Branch:** `feat/track-c` (local only, not pushed; small commits, one change each)
-**Read this if you are reviewing Track C, running the demo, or changing the dashboard.** Plan: [`docs/PROJECT_PLAN.md`](../docs/PROJECT_PLAN.md). Tasks: [`docs/TEAM_TASKS.md`](../docs/TEAM_TASKS.md). Earlier handoffs: [Track A](2026-10-30-track-a-build.md), [Track B](2026-11-03-track-b-build.md). How to use the dashboard: [`docs/dashboard-guide.md`](../docs/dashboard-guide.md).
+**Read this if you are reviewing Track C, running the demo, or changing the dashboard.** Plan: [`docs/PROJECT_PLAN.md`](../docs/PROJECT_PLAN.md). Earlier handoffs: [Track A](2026-10-30-track-a-build.md), [Track B](2026-11-03-track-b-build.md). How to use the dashboard: [`docs/dashboard-guide.md`](../docs/dashboard-guide.md).
 
 ## Where things stand
 
@@ -13,7 +13,7 @@
 | C4–C6 pages | review | Ten pages in pipeline order + Guide, Stitch layout (sidebar, stepper, stage details, previous/next), light/dark mode, Chart.js and fonts vendored (works offline) |
 | C7 export | review | `loganalysis/export/to_serving.py` (+ pure-Python `serving.py`): every table → `{columns, rows}`, timestamps formatted in Spark with the −04:00 offset, size guard, manifest written last, temp file + rename |
 | C8 Docker | review | `dashboard/Dockerfile` (python 3.10 slim, gunicorn), `dashboard` service in compose (port 5000, repo mounted read-only, 256 MB) |
-| C9 docs | review | `docs/dashboard-guide.md` (plain-language guide, shown in the app at `/guide`), `docs/demo-script.md`, README dashboard section and screenshots (`docs/images/`, every page in both modes), plan and task board updated |
+| C9 docs | review | `docs/dashboard-guide.md` (plain-language guide, shown in the app at `/guide`), `docs/demo-script.md`, README dashboard section and screenshots (`docs/images/`, every page in both modes), plan updated |
 
 New pipeline outputs (so the Ingestion page and runtimes are real, not typed in):
 - `contracts.REPORTS` defines two small JSON reports in `paths.reports` (`data/reports/`):
@@ -66,7 +66,6 @@ python -m pytest -q                                                         # ne
 ## Not done / open
 
 - **Nothing is pushed.** `git push -u origin feat/track-c` publishes it (a new branch, so no existing PR changes). Then open a PR for review.
-- **Owners:** the Track C rows in `TEAM_TASKS.md` have no owner name yet.
 - **`error_rate` anomalies are still noisy** (88 spikes; see the Track B handoff). The Anomalies page explains this on screen, but the threshold question is still open for the team.
 - **Not tested:** the `full` profile, and the dashboard on macOS (it is plain Python and was only run on Windows here).
 - **Demo:** rehearsals (I6) have not happened yet; the demo date is still open.

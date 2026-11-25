@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-03 · **Author:** Madhav · **Branch:** `feat/track-b` (pushed; not merged into `main` yet)
 **Updated 2026-11-03:** verified end to end on the real cluster with the full dataset; see "On the real cluster" below.
-**Read this if you are picking up Track C, reviewing Track B, or running the full pipeline.** Plan: [`docs/PROJECT_PLAN.md`](../docs/PROJECT_PLAN.md). Tasks: [`docs/TEAM_TASKS.md`](../docs/TEAM_TASKS.md). Track A's handoff: [`2026-10-30-track-a-build.md`](2026-10-30-track-a-build.md).
+**Read this if you are picking up Track C, reviewing Track B, or running the full pipeline.** Plan: [`docs/PROJECT_PLAN.md`](../docs/PROJECT_PLAN.md). Track A's handoff: [`2026-10-30-track-a-build.md`](2026-10-30-track-a-build.md).
 
 ## Where things stand
 
@@ -129,6 +129,5 @@ tests/
 
 ## Open questions
 
-1. Who takes Track C?
-2. The demo date.
-3. Who reviews Track B (and Track A)? Both tracks are waiting in "review".
+1. The demo date.
+2. Who reviews Track B (and Track A)? Both tracks are waiting in "review".

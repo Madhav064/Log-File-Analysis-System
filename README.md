@@ -407,7 +407,6 @@ Linting and tests run on every push through GitHub Actions.
 | Document | Description |
 |---|---|
 | [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) | Full design: architecture, modules, decisions, timeline |
-| [`docs/TEAM_TASKS.md`](docs/TEAM_TASKS.md) | Work breakdown and ownership |
 | [`docs/contracts/`](docs/contracts/) | Data schemas, HDFS layout and API contract |
 | [`docs/VERSIONS.md`](docs/VERSIONS.md) | Pinned versions of every component |
 | [`docs/dashboard-guide.md`](docs/dashboard-guide.md) | User guide for the dashboard |

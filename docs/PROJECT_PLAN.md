@@ -5,8 +5,6 @@
 > **Stack:** Hadoop (HDFS + YARN + MapReduce), Spark (PySpark), Flask + Chart.js
 > **Team:** 3 members · **Timeline:** ~2 weeks · **Deliverable:** working code + live demo
 
-The pickable task list for the team is in [TEAM_TASKS.md](TEAM_TASKS.md).
-
 ---
 
 ## 1. Decisions locked in by the team
@@ -133,7 +131,6 @@ Log-File-Analysis-System/
 ├── .gitignore  .gitattributes    # force LF line endings for .py/.sh (CRLF breaks mappers)
 ├── docs/
 │   ├── PROJECT_PLAN.md           # this file
-│   ├── TEAM_TASKS.md             # pickable tasks, owners, status
 │   ├── VERSIONS.md               # pinned Hadoop / Spark / Python / Java versions
 │   ├── contracts/                # frozen schemas (copied from §6 on Day 1)
 │   └── demo-script.md
@@ -546,7 +543,7 @@ python scripts/pipeline.py export
 - **Branches:** `feat/<task-id>-<short-name>` (e.g. `feat/B4-etl-job`), `fix/...`, `docs/...`. `main` is protected.
 - **PRs:** small, one task per PR, **one approval from another member**, and CI green before merge. Link the task ID in the PR title.
 - **Contracts are frozen** after Day 1. Changing one needs a PR that all three approve, because it breaks other people's work.
-- **Tracking:** one GitHub Issue per task ID in [TEAM_TASKS.md](TEAM_TASKS.md), on a GitHub Project board (Todo / In progress / Review / Done).
+- **Tracking:** one GitHub Issue per task ID, on a GitHub Project board (Todo / In progress / Review / Done).
 - **Sync:** a 10-minute daily check-in: what's done, what's next, what's blocking.
 - **Line endings:** `.gitattributes` forces LF for `*.py` and `*.sh`. Windows CRLF breaks mapper shebangs and shell scripts inside the Linux containers.
 
@@ -572,8 +569,7 @@ python scripts/pipeline.py export
 
 ## 12. Still open (please answer when you can)
 
-Answered: operating systems are one Mac (Apple Silicon) and two Windows laptops, Dilpreet takes Track A and Madhav takes Track B (see D1 and TEAM_TASKS.md).
+Answered: operating systems are one Mac (Apple Silicon) and two Windows laptops (see D1).
 
-1. **Who takes Track C**, so the name can go into TEAM_TASKS.md.
-2. **The exact demo date**, to turn "Day 1–14" into real dates.
-3. **Any instructor requirements** on versions, report format or required analyses that this plan doesn't cover.
+1. **The exact demo date**, to turn "Day 1–14" into real dates.
+2. **Any instructor requirements** on versions, report format or required analyses that this plan doesn't cover.

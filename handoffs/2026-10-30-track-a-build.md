@@ -1,8 +1,7 @@
 # Handoff: Track A build (platform, ingestion, MapReduce, runner)
 
 **Date:** 2026-10-30 · **Author:** Dilpreet · **State of `main`:** everything below is committed and pushed.
-**Read this first if you are picking up Track B or Track C.** Plan: [`docs/PROJECT_PLAN.md`](../docs/PROJECT_PLAN.md). Tasks: [`docs/TEAM_TASKS.md`](../docs/TEAM_TASKS.md).
-
+**Read this first if you are picking up Track B or Track C.** Plan: [`docs/PROJECT_PLAN.md`](../docs/PROJECT_PLAN.md).
 ## Where things stand
 
 | Task | Status | Notes |
@@ -89,6 +88,5 @@ Cluster UIs: HDFS http://localhost:9870, YARN http://localhost:8088, Spark http:
 
 ## Open questions (plan §12)
 
-1. Who takes Tracks B and C (owners are blank in `TEAM_TASKS.md`)?
-2. The demo date.
-3. Any instructor requirements on versions, report format or required analyses.
+1. The demo date.
+2. Any instructor requirements on versions, report format or required analyses.
